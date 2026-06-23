@@ -1,0 +1,36 @@
+namespace Domain.Entities;
+
+public class PedidoItem
+{
+    public Guid Id { get; private set; }
+    public Guid PedidoId { get; private set; }
+    public Guid CarneId { get; private set; }
+    public decimal Quantidade { get; private set; }
+    public decimal PrecoUnitario { get; private set; }
+
+    public decimal Subtotal => Quantidade * PrecoUnitario;
+
+    private PedidoItem()
+    {
+    }
+
+    internal PedidoItem(Guid pedidoId, Guid carneId, decimal quantidade, decimal precoUnitario)
+    {
+        Id = Guid.NewGuid();
+        PedidoId = pedidoId;
+        CarneId = carneId;
+        ValidateAndSet(quantidade, precoUnitario);
+    }
+
+    private void ValidateAndSet(decimal quantidade, decimal precoUnitario)
+    {
+        if (quantidade <= 0)
+            throw new ArgumentException("Quantidade deve ser maior que zero.", nameof(quantidade));
+
+        if (precoUnitario <= 0)
+            throw new ArgumentException("Preço unitário deve ser maior que zero.", nameof(precoUnitario));
+
+        Quantidade = quantidade;
+        PrecoUnitario = precoUnitario;
+    }
+}

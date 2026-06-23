@@ -1,5 +1,4 @@
 using Domain.Entities;
-using Entities.Entidades;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infra.Data;
@@ -34,21 +33,29 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<Pedido>(entity =>
         {
-            entity.Property(p => p.Status).HasMaxLength(30).IsRequired();
+            entity.Property(p => p.Status)
+                .HasConversion<string>()
+                .HasMaxLength(30)
+                .IsRequired();
 
-            entity.HasOne<Comprador>()
+            entity.HasOne(p => p.Comprador)
                 .WithMany()
                 .HasForeignKey(p => p.CompradorId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            entity.Navigation(p => p.Items)
+                .HasField("_itens")
+                .UsePropertyAccessMode(PropertyAccessMode.Field);
         });
 
         modelBuilder.Entity<PedidoItem>(entity =>
         {
-            entity.Property(pi => pi.QuantidadeKg).HasPrecision(10, 3);
+            entity.Property(pi => pi.Quantidade).HasPrecision(10, 3);
             entity.Property(pi => pi.PrecoUnitario).HasPrecision(10, 2);
+            entity.Ignore(pi => pi.Subtotal);
 
-            entity.HasOne(pi => pi.Pedido)
-                .WithMany(p => p.Itens)
+            entity.HasOne<Pedido>()
+                .WithMany(p => p.Items)
                 .HasForeignKey(pi => pi.PedidoId)
                 .OnDelete(DeleteBehavior.Cascade);
 
