@@ -41,4 +41,17 @@ public class Pedido
     }
 
     public decimal CalcularTotal() => _itens.Sum(i => i.Subtotal);
+
+    public void AtualizarStatus(PedidoStatus status)
+    {
+        Status = status;
+    }
+
+    public void LimparItens()
+    {
+        if (Status != PedidoStatus.Pendente)
+            throw new InvalidOperationException("Só é possível alterar itens em pedidos pendentes.");
+
+        _itens.Clear();
+    }
 }

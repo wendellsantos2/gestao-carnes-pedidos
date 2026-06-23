@@ -1,3 +1,4 @@
+using Application.Services;
 using Domain.Interfaces;
 using Infra.Data;
 using Infra.Repositories;
@@ -11,6 +12,10 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<ICarneRepository, CarneRepository>();
 builder.Services.AddScoped<ICompradorRepository, CompradorRepository>();
 builder.Services.AddScoped<IPedidoRepository, PedidoRepository>();
+
+builder.Services.AddScoped<ICarneService, CarneService>();
+builder.Services.AddScoped<ICompradorService, CompradorService>();
+builder.Services.AddScoped<IPedidoService, PedidoService>();
 
 builder.Services.AddCors(options =>
 {
