@@ -59,7 +59,7 @@ public class AppDbContext : DbContext
                 .HasForeignKey(pi => pi.PedidoId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            entity.HasOne<Carne>()
+            entity.HasOne(pi => pi.Carne)
                 .WithMany()
                 .HasForeignKey(pi => pi.CarneId)
                 .OnDelete(DeleteBehavior.Restrict);

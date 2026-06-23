@@ -1,10 +1,16 @@
+using Domain.Interfaces;
 using Infra.Data;
+using Infra.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddScoped<ICarneRepository, CarneRepository>();
+builder.Services.AddScoped<ICompradorRepository, CompradorRepository>();
+builder.Services.AddScoped<IPedidoRepository, PedidoRepository>();
 
 builder.Services.AddCors(options =>
 {

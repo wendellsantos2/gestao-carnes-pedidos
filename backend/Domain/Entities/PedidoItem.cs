@@ -5,6 +5,7 @@ public class PedidoItem
     public Guid Id { get; private set; }
     public Guid PedidoId { get; private set; }
     public Guid CarneId { get; private set; }
+    public Carne? Carne { get; private set; }
     public decimal Quantidade { get; private set; }
     public decimal PrecoUnitario { get; private set; }
 
