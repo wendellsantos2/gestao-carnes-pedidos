@@ -29,14 +29,15 @@ public class AppDbContext : DbContext
             entity.Property(c => c.Nome).HasMaxLength(100).IsRequired();
             entity.Property(c => c.Email).HasMaxLength(150).IsRequired();
             entity.Property(c => c.Telefone).HasMaxLength(20).IsRequired();
+            entity.Property(c => c.Endereco).HasMaxLength(200).IsRequired();
         });
 
         modelBuilder.Entity<Pedido>(entity =>
         {
             entity.Property(p => p.Status).HasMaxLength(30).IsRequired();
 
-            entity.HasOne(p => p.Comprador)
-                .WithMany(c => c.Pedidos)
+            entity.HasOne<Comprador>()
+                .WithMany()
                 .HasForeignKey(p => p.CompradorId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
