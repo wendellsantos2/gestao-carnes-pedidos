@@ -41,11 +41,22 @@ builder.Services.AddSwaggerGen(options =>
     {
         Title = "Gestão Carnes Pedidos API",
         Version = "v1",
-        Description = "API para gestão de carnes, compradores e pedidos."
+        Description = "API REST para gestão de carnes, compradores e pedidos de carnes."
     });
+
+    var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (File.Exists(xmlPath))
+        options.IncludeXmlComments(xmlPath);
 });
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await DbSeeder.SeedAsync(context);
+}
 
 if (app.Environment.IsDevelopment())
 {
