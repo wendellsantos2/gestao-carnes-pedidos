@@ -1,5 +1,6 @@
 import { Box, Card, CardContent, Grid, Typography } from '@mui/material'
 import { LocalDining as LocalDiningIcon, People as PeopleIcon, ShoppingCart as ShoppingCartIcon } from '@mui/icons-material'
+import ApiStatus from '../components/ApiStatus'
 
 const modules = [
   {
@@ -25,7 +26,8 @@ export default function HomePage() {
       <Typography variant="h4" component="h1" gutterBottom>
         Sistema de Gestão de Carnes e Pedidos
       </Typography>
-    
+
+      <ApiStatus />
 
       <Grid container spacing={3}>
         {modules.map((module) => (
