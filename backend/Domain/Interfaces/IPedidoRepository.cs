@@ -12,6 +12,7 @@ public interface IPedidoRepository
     Task<Pedido?> GetByIdAsync(Guid id);
     Task AddAsync(Pedido pedido);
     Task UpdateAsync(Pedido pedido);
+    Task RemoveItemsAsync(Guid pedidoId);
     Task DeleteAsync(Guid id);
     Task SaveChangesAsync();
 }

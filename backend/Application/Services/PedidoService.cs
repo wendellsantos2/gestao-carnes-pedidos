@@ -64,6 +64,7 @@ public class PedidoService : IPedidoService
 
         if (dto.Items.Count > 0)
         {
+            await _pedidoRepository.RemoveItemsAsync(id);
             pedido.LimparItens();
 
             foreach (var item in dto.Items)

@@ -39,8 +39,20 @@ public class PedidoRepository : IPedidoRepository
 
     public Task UpdateAsync(Pedido pedido)
     {
-        _context.Pedidos.Update(pedido);
+        if (_context.Entry(pedido).State == EntityState.Detached)
+            _context.Pedidos.Update(pedido);
+
         return Task.CompletedTask;
+    }
+
+    public async Task RemoveItemsAsync(Guid pedidoId)
+    {
+        var items = await _context.Set<PedidoItem>()
+            .Where(i => i.PedidoId == pedidoId)
+            .ToListAsync();
+
+        if (items.Count > 0)
+            _context.Set<PedidoItem>().RemoveRange(items);
     }
 
     public async Task DeleteAsync(Guid id)
