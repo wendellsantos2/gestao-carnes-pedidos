@@ -1,4 +1,4 @@
-using Domain.Entities;
+using Entities.Entidades;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infra.Data;

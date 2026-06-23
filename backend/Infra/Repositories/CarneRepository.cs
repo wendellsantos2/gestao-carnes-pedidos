@@ -1,4 +1,4 @@
-using Domain.Entities;
+using Entities.Entidades;
 using Domain.Interfaces;
 using Infra.Data;
 using Microsoft.EntityFrameworkCore;

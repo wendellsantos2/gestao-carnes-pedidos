@@ -1,4 +1,4 @@
-namespace Domain.Entities;
+namespace Entities.Entidades;
 
 public class Pedido
 {

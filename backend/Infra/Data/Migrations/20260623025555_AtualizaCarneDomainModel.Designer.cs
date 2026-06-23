@@ -25,7 +25,7 @@ namespace Infra.Data.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("Domain.Entities.Carne", b =>
+            modelBuilder.Entity("Entities.Entidades.Carne", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -152,7 +152,7 @@ namespace Infra.Data.Migrations
 
             modelBuilder.Entity("Entities.Entidades.PedidoItem", b =>
                 {
-                    b.HasOne("Domain.Entities.Carne", null)
+                    b.HasOne("Entities.Entidades.Carne", null)
                         .WithMany()
                         .HasForeignKey("CarneId")
                         .OnDelete(DeleteBehavior.Restrict)

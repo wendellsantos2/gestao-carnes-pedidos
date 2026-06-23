@@ -25,7 +25,7 @@ namespace Infra.Data.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("Domain.Entities.Carne", b =>
+            modelBuilder.Entity("Entities.Entidades.Carne", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -53,7 +53,7 @@ namespace Infra.Data.Migrations
                     b.ToTable("Carnes");
                 });
 
-            modelBuilder.Entity("Domain.Entities.Comprador", b =>
+            modelBuilder.Entity("Entities.Entidades.Comprador", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -84,7 +84,7 @@ namespace Infra.Data.Migrations
                     b.ToTable("Compradores");
                 });
 
-            modelBuilder.Entity("Domain.Entities.Pedido", b =>
+            modelBuilder.Entity("Entities.Entidades.Pedido", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -108,7 +108,7 @@ namespace Infra.Data.Migrations
                     b.ToTable("Pedidos");
                 });
 
-            modelBuilder.Entity("Domain.Entities.PedidoItem", b =>
+            modelBuilder.Entity("Entities.Entidades.PedidoItem", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -138,9 +138,9 @@ namespace Infra.Data.Migrations
                     b.ToTable("PedidoItem");
                 });
 
-            modelBuilder.Entity("Domain.Entities.Pedido", b =>
+            modelBuilder.Entity("Entities.Entidades.Pedido", b =>
                 {
-                    b.HasOne("Domain.Entities.Comprador", "Comprador")
+                    b.HasOne("Entities.Entidades.Comprador", "Comprador")
                         .WithMany()
                         .HasForeignKey("CompradorId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -149,22 +149,22 @@ namespace Infra.Data.Migrations
                     b.Navigation("Comprador");
                 });
 
-            modelBuilder.Entity("Domain.Entities.PedidoItem", b =>
+            modelBuilder.Entity("Entities.Entidades.PedidoItem", b =>
                 {
-                    b.HasOne("Domain.Entities.Carne", null)
+                    b.HasOne("Entities.Entidades.Carne", null)
                         .WithMany()
                         .HasForeignKey("CarneId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Domain.Entities.Pedido", null)
+                    b.HasOne("Entities.Entidades.Pedido", null)
                         .WithMany("Items")
                         .HasForeignKey("PedidoId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Domain.Entities.Pedido", b =>
+            modelBuilder.Entity("Entities.Entidades.Pedido", b =>
                 {
                     b.Navigation("Items");
                 });
