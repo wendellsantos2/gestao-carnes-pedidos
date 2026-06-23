@@ -1,3 +1,4 @@
+using Domain.Entities;
 using Entities.Entidades;
 using Microsoft.EntityFrameworkCore;
 
@@ -20,6 +21,7 @@ public class AppDbContext : DbContext
             entity.Property(c => c.Nome).HasMaxLength(100).IsRequired();
             entity.Property(c => c.Tipo).HasMaxLength(50).IsRequired();
             entity.Property(c => c.PrecoKg).HasPrecision(10, 2);
+            entity.Property(c => c.Ativo).IsRequired();
         });
 
         modelBuilder.Entity<Comprador>(entity =>
@@ -49,8 +51,8 @@ public class AppDbContext : DbContext
                 .HasForeignKey(pi => pi.PedidoId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            entity.HasOne(pi => pi.Carne)
-                .WithMany(c => c.PedidoItens)
+            entity.HasOne<Carne>()
+                .WithMany()
                 .HasForeignKey(pi => pi.CarneId)
                 .OnDelete(DeleteBehavior.Restrict);
 
