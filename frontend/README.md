@@ -1,32 +1,80 @@
-# React + TypeScript + Vite
+# Frontend — Gestão Carnes Pedidos
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Interface React do sistema de gestão de carnes e pedidos.
 
-Currently, two official plugins are available:
+## Scripts
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+| Comando | Descrição |
+|---------|-----------|
+| `npm run dev` | Servidor de desenvolvimento |
+| `npm start` | Alias para `dev` |
+| `npm run build` | Build de produção |
+| `npm run preview` | Preview do build |
+| `npm test` | Testes unitários (Vitest) |
+| `npm run test:watch` | Testes em modo watch |
 
-## React Compiler
+## Estrutura principal
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```
+src/
+├── components/          # Componentes reutilizáveis
+│   ├── ErrorHandlerProvider.tsx   # Handler global de erros
+│   └── CotacaoCard.tsx            # Cotações USD/EUR
+├── pages/               # Páginas por módulo (carnes, compradores, pedidos)
+├── services/
+│   ├── api.ts           # Cliente Axios da API backend
+│   └── cotacaoService.ts # Integração AwesomeAPI
+├── utils/
+│   ├── errorMessages.ts # Mensagens amigáveis de erro
+│   └── format.ts        # Formatação de moeda e data
+└── tests/               # Testes unitários (na raiz do frontend)
+```
 
-## Expanding the Oxlint configuration
+## Integração AwesomeAPI
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+O serviço `cotacaoService.ts` consome a [AwesomeAPI](https://docs.awesomeapi.com.br/api-de-moedas) para obter cotações USD/BRL e EUR/BRL.
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
+- Endpoint padrão: `/cotacao/json/last/USD-BRL,EUR-BRL` (proxy Vite em desenvolvimento)
+- Conversão: `convertToBrl(valor, cotacao)` usa a cotação de compra (`bid`)
+
+Exemplo exibido na home: US$ 10 e € 10 convertidos para BRL.
+
+## Tratamento de erros
+
+O `ErrorHandlerProvider` envolve a aplicação e expõe o hook `useErrorHandler()`:
+
+```tsx
+const { notifyError, notifySuccess } = useErrorHandler()
+
+try {
+  await createCarne(payload)
+  notifySuccess('Carne cadastrada com sucesso.')
+} catch (error) {
+  notifyError(error)
 }
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Mensagens são normalizadas em `utils/errorMessages.ts` (rede, timeout, HTTP 4xx/5xx).
+
+## Proxy de desenvolvimento
+
+Configurado em `vite.config.ts`:
+
+- `/api` → `http://localhost:5005`
+- `/cotacao` → `https://economia.awesomeapi.com.br`
+
+## Testes
+
+```bash
+npm test
+```
+
+Arquivos em `tests/`:
+- `cotacaoService.test.ts` — parsing e conversão de moedas
+- `errorMessages.test.ts` — mensagens amigáveis
+- `format.test.ts` — utilitários de formatação
+
+## Requisitos
+
+- Backend rodando em `http://localhost:5005` para os CRUDs
+- Conexão com internet para cotações (AwesomeAPI)

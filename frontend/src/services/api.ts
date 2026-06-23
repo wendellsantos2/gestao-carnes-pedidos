@@ -1,4 +1,5 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
+import { resolveErrorMessage } from '../utils/errorMessages'
 
 export const API_BASE_URL = import.meta.env.VITE_API_URL ?? '/api'
 
@@ -19,18 +20,12 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error: AxiosError<{ message?: string }>) => {
-    const message =
-      error.response?.data?.message ??
-      error.message ??
-      'Erro ao comunicar com a API.'
-
-    return Promise.reject(new Error(message))
+    return Promise.reject(new Error(resolveErrorMessage(error)))
   },
 )
 
 export function getApiErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message
-  return 'Erro desconhecido.'
+  return resolveErrorMessage(error)
 }
 
 export default api

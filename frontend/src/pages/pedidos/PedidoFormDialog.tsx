@@ -19,7 +19,9 @@ import {
 import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material'
 import { listCarnes } from '../../services/carnesService'
 import { listCompradores } from '../../services/compradoresService'
-import { getApiErrorMessage } from '../../services/api'
+import { convertPrecoParaBrl, MOEDA_PRECOS_SISTEMA } from '../../services/cotacaoService'
+import { useCotacoes } from '../../hooks/useCotacoes'
+import { resolveErrorMessage } from '../../utils/errorMessages'
 import type {
   Carne,
   Comprador,
@@ -57,6 +59,7 @@ export default function PedidoFormDialog({
 }: PedidoFormDialogProps) {
   const isEditing = Boolean(pedido)
   const canEditItems = !pedido || pedido.status === 'Pendente'
+  const { cotacoes } = useCotacoes()
 
   const [compradores, setCompradores] = useState<Comprador[]>([])
   const [carnes, setCarnes] = useState<Carne[]>([])
@@ -80,7 +83,7 @@ export default function PedidoFormDialog({
         setCompradores(compradoresData)
         setCarnes(carnesData)
       } catch (err) {
-        setLoadError(getApiErrorMessage(err))
+        setLoadError(resolveErrorMessage(err))
       }
     }
 
@@ -287,7 +290,16 @@ export default function PedidoFormDialog({
                 </Stack>
 
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-                  Total estimado: {formatCurrency(estimatedTotal)}
+                  Total estimado ({MOEDA_PRECOS_SISTEMA}): {formatCurrency(estimatedTotal)}
+                  {cotacoes && (
+                    <>
+                      {' '}
+                      → em Real:{' '}
+                      {formatCurrency(convertPrecoParaBrl(estimatedTotal, cotacoes, MOEDA_PRECOS_SISTEMA))}
+                      {' '}
+                      (cotação {formatCurrency(cotacoes.usd.bid)}/{MOEDA_PRECOS_SISTEMA})
+                    </>
+                  )}
                 </Typography>
               </Box>
             )}

@@ -5,7 +5,6 @@ import {
   CircularProgress,
   IconButton,
   Paper,
-  Snackbar,
   Table,
   TableBody,
   TableCell,
@@ -16,8 +15,8 @@ import {
 } from '@mui/material'
 import { Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material'
 import ConfirmDialog from '../../components/ConfirmDialog'
+import { useErrorHandler } from '../../components/ErrorHandlerProvider'
 import PageHeader from '../../components/PageHeader'
-import { getApiErrorMessage } from '../../services/api'
 import {
   createComprador,
   deleteComprador,
@@ -25,14 +24,15 @@ import {
   updateComprador,
 } from '../../services/compradoresService'
 import type { Comprador, CreateCompradorPayload } from '../../types'
+import { resolveErrorMessage } from '../../utils/errorMessages'
 import CompradorFormDialog from './CompradorFormDialog'
 
 export default function CompradoresPage() {
+  const { notifyError, notifySuccess } = useErrorHandler()
   const [compradores, setCompradores] = useState<Comprador[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const [snackbar, setSnackbar] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<Comprador | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Comprador | null>(null)
@@ -45,7 +45,7 @@ export default function CompradoresPage() {
       const data = await listCompradores()
       setCompradores(data)
     } catch (err) {
-      setError(getApiErrorMessage(err))
+      setError(resolveErrorMessage(err))
     } finally {
       setLoading(false)
     }
@@ -71,16 +71,16 @@ export default function CompradoresPage() {
     try {
       if (editing) {
         await updateComprador(editing.id, payload)
-        setSnackbar('Comprador atualizado com sucesso.')
+        notifySuccess('Comprador atualizado com sucesso.')
       } else {
         await createComprador(payload)
-        setSnackbar('Comprador cadastrado com sucesso.')
+        notifySuccess('Comprador cadastrado com sucesso.')
       }
 
       setDialogOpen(false)
       await loadCompradores()
     } catch (err) {
-      setSnackbar(getApiErrorMessage(err))
+      notifyError(err)
     } finally {
       setSaving(false)
     }
@@ -93,11 +93,11 @@ export default function CompradoresPage() {
 
     try {
       await deleteComprador(deleteTarget.id)
-      setSnackbar('Comprador excluído com sucesso.')
+      notifySuccess('Comprador excluído com sucesso.')
       setDeleteTarget(null)
       await loadCompradores()
     } catch (err) {
-      setSnackbar(getApiErrorMessage(err))
+      notifyError(err)
     } finally {
       setSaving(false)
     }
@@ -179,13 +179,6 @@ export default function CompradoresPage() {
         loading={saving}
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}
-      />
-
-      <Snackbar
-        open={Boolean(snackbar)}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar('')}
-        message={snackbar}
       />
     </Box>
   )

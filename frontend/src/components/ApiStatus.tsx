@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Alert, CircularProgress, Stack, Typography } from '@mui/material'
-import api, { API_BASE_URL, getApiErrorMessage } from '../services/api'
+import api, { API_BASE_URL } from '../services/api'
+import { resolveErrorMessage } from '../utils/errorMessages'
 
 type Status = 'loading' | 'connected' | 'error'
 
@@ -20,7 +21,7 @@ export default function ApiStatus() {
       } catch (error) {
         if (!active) return
         setStatus('error')
-        setMessage(getApiErrorMessage(error))
+        setMessage(resolveErrorMessage(error))
       }
     }
 

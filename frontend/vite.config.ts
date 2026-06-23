@@ -10,6 +10,11 @@ export default defineConfig({
         target: 'http://localhost:5005',
         changeOrigin: true,
       },
+      '/cotacao': {
+        target: 'https://economia.awesomeapi.com.br',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/cotacao/, ''),
+      },
     },
   },
 })

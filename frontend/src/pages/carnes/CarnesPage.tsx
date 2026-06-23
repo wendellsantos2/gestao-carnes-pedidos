@@ -6,7 +6,6 @@ import {
   CircularProgress,
   IconButton,
   Paper,
-  Snackbar,
   Table,
   TableBody,
   TableCell,
@@ -17,19 +16,20 @@ import {
 } from '@mui/material'
 import { Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material'
 import ConfirmDialog from '../../components/ConfirmDialog'
+import { useErrorHandler } from '../../components/ErrorHandlerProvider'
 import PageHeader from '../../components/PageHeader'
-import { getApiErrorMessage } from '../../services/api'
 import { createCarne, deleteCarne, listCarnes, updateCarne } from '../../services/carnesService'
 import type { Carne, CreateCarnePayload } from '../../types'
 import { formatCurrency } from '../../utils/format'
+import { resolveErrorMessage } from '../../utils/errorMessages'
 import CarneFormDialog from './CarneFormDialog'
 
 export default function CarnesPage() {
+  const { notifyError, notifySuccess } = useErrorHandler()
   const [carnes, setCarnes] = useState<Carne[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const [snackbar, setSnackbar] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<Carne | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Carne | null>(null)
@@ -42,7 +42,7 @@ export default function CarnesPage() {
       const data = await listCarnes()
       setCarnes(data)
     } catch (err) {
-      setError(getApiErrorMessage(err))
+      setError(resolveErrorMessage(err))
     } finally {
       setLoading(false)
     }
@@ -68,16 +68,16 @@ export default function CarnesPage() {
     try {
       if (editing) {
         await updateCarne(editing.id, payload)
-        setSnackbar('Carne atualizada com sucesso.')
+        notifySuccess('Carne atualizada com sucesso.')
       } else {
         await createCarne(payload)
-        setSnackbar('Carne cadastrada com sucesso.')
+        notifySuccess('Carne cadastrada com sucesso.')
       }
 
       setDialogOpen(false)
       await loadCarnes()
     } catch (err) {
-      setSnackbar(getApiErrorMessage(err))
+      notifyError(err)
     } finally {
       setSaving(false)
     }
@@ -90,11 +90,11 @@ export default function CarnesPage() {
 
     try {
       await deleteCarne(deleteTarget.id)
-      setSnackbar('Carne excluída com sucesso.')
+      notifySuccess('Carne excluída com sucesso.')
       setDeleteTarget(null)
       await loadCarnes()
     } catch (err) {
-      setSnackbar(getApiErrorMessage(err))
+      notifyError(err)
     } finally {
       setSaving(false)
     }
@@ -182,13 +182,6 @@ export default function CarnesPage() {
         loading={saving}
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}
-      />
-
-      <Snackbar
-        open={Boolean(snackbar)}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar('')}
-        message={snackbar}
       />
     </Box>
   )
