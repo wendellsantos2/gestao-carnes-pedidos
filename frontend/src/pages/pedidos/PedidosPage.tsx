@@ -34,7 +34,8 @@ import {
   updatePedido,
 } from '../../services/pedidosService'
 import { listCompradores } from '../../services/compradoresService'
-import { MOEDA_PRECOS_SISTEMA, type CotacoesUsdEur } from '../../services/cotacaoService'
+import { calcPedidoTotalBrl } from '../../services/cotacaoService'
+import type { CotacoesUsdEur } from '../../services/cotacaoService'
 import type { Comprador, CreatePedidoPayload, Pedido, UpdatePedidoPayload } from '../../types'
 import { formatCurrency, formatDate } from '../../utils/format'
 import { resolveErrorMessage } from '../../utils/errorMessages'
@@ -67,7 +68,13 @@ function PedidoRow({ pedido, cotacoes, onEdit, onDelete }: PedidoRowProps) {
         </TableCell>
         <TableCell>{pedido.items.length}</TableCell>
         <TableCell>
-          <ValorEmReal valorOriginal={pedido.total} cotacoes={cotacoes} variant="body2" />
+          <ValorEmReal
+            valorOriginal={calcPedidoTotalBrl(pedido.items, cotacoes)}
+            cotacoes={cotacoes}
+            moeda="BRL"
+            variant="body2"
+            showOriginal={false}
+          />
         </TableCell>
         <TableCell align="right">
           <Tooltip title="Editar">
@@ -99,10 +106,22 @@ function PedidoRow({ pedido, cotacoes, onEdit, onDelete }: PedidoRowProps) {
                   <ValorEmReal
                     valorOriginal={item.precoUnitario}
                     cotacoes={cotacoes}
+                    moeda={item.moeda}
                     showOriginal={false}
                   />
                   /kg ={' '}
-                  <ValorEmReal valorOriginal={item.subtotal} cotacoes={cotacoes} showOriginal={false} />
+                  <ValorEmReal
+                    valorOriginal={item.subtotal}
+                    cotacoes={cotacoes}
+                    moeda={item.moeda}
+                    showOriginal={false}
+                  />
+                  {item.moeda !== 'BRL' && (
+                    <Typography component="span" variant="caption" color="text.secondary">
+                      {' '}
+                      ({item.moeda})
+                    </Typography>
+                  )}
                 </Typography>
               ))}
             </Box>
@@ -224,8 +243,9 @@ export default function PedidosPage() {
 
       {cotacoes && (
         <Alert severity="info" sx={{ mb: 2 }}>
-          Valores convertidos para Real (BRL) via AwesomeAPI — cotação {MOEDA_PRECOS_SISTEMA}/BRL:{' '}
-          {formatCurrency(cotacoes.usd.bid)} (atualizado em {cotacoes.usd.createDate})
+          Valores convertidos para Real (BRL) via AwesomeAPI — USD/BRL:{' '}
+          {formatCurrency(cotacoes.usd.bid)} · EUR/BRL: {formatCurrency(cotacoes.eur.bid)} (atualizado
+          em {cotacoes.usd.createDate})
         </Alert>
       )}
 

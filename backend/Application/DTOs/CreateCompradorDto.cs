@@ -8,10 +8,12 @@ public class CreateCompradorDto
     public string Nome { get; set; } = string.Empty;
 
     [Required]
-    [EmailAddress]
-    public string Email { get; set; } = string.Empty;
+    public string Documento { get; set; } = string.Empty;
 
-    public string Telefone { get; set; } = string.Empty;
+    [Required]
+    public string Cidade { get; set; } = string.Empty;
 
-    public string Endereco { get; set; } = string.Empty;
+    [Required]
+    [StringLength(2, MinimumLength = 2)]
+    public string Estado { get; set; } = string.Empty;
 }

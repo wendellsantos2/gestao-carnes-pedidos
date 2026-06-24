@@ -1,4 +1,7 @@
-import type { CreateCarnePayload, CreateCompradorPayload, CreatePedidoItemPayload } from '../types'
+import type { CreateCarnePayload, CreateCompradorPayload, CreatePedidoItemPayload, MoedaPedido, OrigemCarne } from '../types'
+import { MOEDAS_PEDIDO, ORIGENS_CARNE } from '../types'
+import { isCidadeValidaParaEstado, isEstadoValido } from '../data/estadosCidades'
+import { apenasDigitos } from './documento'
 
 export type FieldErrors<T extends string> = Partial<Record<T, string>>
 
@@ -36,31 +39,76 @@ export function validatePositiveQuantity(value: number): string | undefined {
   return undefined
 }
 
-export function validateCarneForm(form: CreateCarnePayload): FieldErrors<'nome' | 'tipo' | 'precoKg'> {
-  return {
-    nome: validateRequired(form.nome, 'Nome'),
-    tipo: validateRequired(form.tipo, 'Tipo'),
-    precoKg: validatePositivePrice(form.precoKg),
+export function validateOrigemCarne(value: string): string | undefined {
+  if (!ORIGENS_CARNE.includes(value as OrigemCarne)) {
+    return 'Selecione uma origem válida (Bovina, Suína, Aves ou Peixes).'
   }
+  return undefined
+}
+
+export function validateCarneForm(form: CreateCarnePayload): FieldErrors<'nome' | 'origem'> {
+  return {
+    nome: validateRequired(form.nome, 'Descrição da carne'),
+    origem: !form.origem ? 'Selecione a origem da carne.' : validateOrigemCarne(form.origem),
+  }
+}
+
+export function validateDocumento(value: string): string | undefined {
+  const digits = apenasDigitos(value)
+
+  if (!digits) {
+    return 'Documento é obrigatório.'
+  }
+
+  if (digits.length !== 11 && digits.length !== 14) {
+    return 'Informe um CPF (11 dígitos) ou CNPJ (14 dígitos) válido.'
+  }
+
+  return undefined
 }
 
 export function validateCompradorForm(
   form: CreateCompradorPayload,
-): FieldErrors<'nome' | 'email'> {
-  return {
+): FieldErrors<'nome' | 'documento' | 'cidade' | 'estado'> {
+  const errors: FieldErrors<'nome' | 'documento' | 'cidade' | 'estado'> = {
     nome: validateRequired(form.nome, 'Nome do comprador'),
-    email: validateEmail(form.email),
+    documento: validateDocumento(form.documento),
+    estado: !form.estado
+      ? 'Selecione o estado.'
+      : !isEstadoValido(form.estado)
+        ? 'Estado inválido.'
+        : undefined,
+    cidade: !form.cidade
+      ? 'Selecione a cidade.'
+      : form.estado && !isCidadeValidaParaEstado(form.cidade, form.estado)
+        ? 'Cidade inválida para o estado selecionado.'
+        : undefined,
   }
+
+  return errors
+}
+
+export function validateMoeda(value: string): string | undefined {
+  const moedasValidas = MOEDAS_PEDIDO.map((option) => option.value)
+  if (!moedasValidas.includes(value as MoedaPedido)) {
+    return 'Selecione uma moeda válida (Real, Dólar ou Euro).'
+  }
+  return undefined
 }
 
 export function validatePedidoCreate(
   compradorId: string,
   items: CreatePedidoItemPayload[],
-): FieldErrors<'compradorId' | 'items'> {
-  const errors: FieldErrors<'compradorId' | 'items'> = {}
+  dataPedido?: string,
+): FieldErrors<'compradorId' | 'items' | 'dataPedido'> {
+  const errors: FieldErrors<'compradorId' | 'items' | 'dataPedido'> = {}
 
   if (!compradorId) {
     errors.compradorId = 'Selecione um comprador.'
+  }
+
+  if (dataPedido !== undefined && !dataPedido.trim()) {
+    errors.dataPedido = 'Informe a data do pedido.'
   }
 
   if (items.length === 0) {
@@ -69,11 +117,16 @@ export function validatePedidoCreate(
   }
 
   const invalidItem = items.some(
-    (item) => !item.carneId || validatePositiveQuantity(item.quantidade),
+    (item) =>
+      !item.carneId ||
+      validatePositiveQuantity(item.quantidade) ||
+      validatePositivePrice(item.precoUnitario) ||
+      validateMoeda(item.moeda),
   )
 
   if (invalidItem) {
-    errors.items = 'Todos os itens devem ter carne selecionada e quantidade maior que zero.'
+    errors.items =
+      'Todos os itens devem ter carne, quantidade, preço e moeda válidos.'
   }
 
   return errors

@@ -38,7 +38,7 @@ public class PedidoService : IPedidoService
         if (comprador is null)
             throw new KeyNotFoundException($"Comprador com id '{dto.CompradorId}' não encontrado.");
 
-        var pedido = new Pedido(dto.CompradorId);
+        var pedido = new Pedido(dto.CompradorId, dto.DataPedido);
 
         foreach (var item in dto.Items)
         {
@@ -46,7 +46,7 @@ public class PedidoService : IPedidoService
             if (carne is null)
                 throw new KeyNotFoundException($"Carne com id '{item.CarneId}' não encontrada.");
 
-            pedido.AdicionarItem(item.CarneId, item.Quantidade, carne.PrecoKg);
+            pedido.AdicionarItem(item.CarneId, item.Quantidade, item.PrecoUnitario, item.Moeda);
         }
 
         await _pedidoRepository.AddAsync(pedido);
@@ -73,7 +73,7 @@ public class PedidoService : IPedidoService
                 if (carne is null)
                     throw new KeyNotFoundException($"Carne com id '{item.CarneId}' não encontrada.");
 
-                pedido.AdicionarItem(item.CarneId, item.Quantidade, carne.PrecoKg);
+                pedido.AdicionarItem(item.CarneId, item.Quantidade, item.PrecoUnitario, item.Moeda);
             }
         }
 
@@ -115,9 +115,9 @@ public class PedidoService : IPedidoService
                 {
                     Id = pedido.Comprador.Id,
                     Nome = pedido.Comprador.Nome,
-                    Email = pedido.Comprador.Email,
-                    Telefone = pedido.Comprador.Telefone,
-                    Endereco = pedido.Comprador.Endereco
+                    Documento = pedido.Comprador.Documento,
+                    Cidade = pedido.Comprador.Cidade,
+                    Estado = pedido.Comprador.Estado
                 },
             Items = pedido.Items.Select(item => new PedidoItemDto
             {
@@ -125,6 +125,7 @@ public class PedidoService : IPedidoService
                 NomeCarne = item.Carne?.Nome ?? string.Empty,
                 Quantidade = (int)item.Quantidade,
                 PrecoUnitario = item.PrecoUnitario,
+                Moeda = item.Moeda,
                 Subtotal = item.Subtotal
             }).ToList()
         };

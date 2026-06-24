@@ -27,7 +27,7 @@ public class CarneService : ICarneService
 
     public async Task<CarneDto> CreateAsync(CreateCarneDto dto)
     {
-        var carne = new Carne(dto.Nome, dto.Tipo, dto.PrecoKg);
+        var carne = new Carne(dto.Nome, dto.Origem);
         await _repository.AddAsync(carne);
         await _repository.SaveChangesAsync();
         return MapToDto(carne);
@@ -39,7 +39,7 @@ public class CarneService : ICarneService
         if (carne is null)
             throw new KeyNotFoundException($"Carne com id '{id}' não encontrada.");
 
-        carne.Update(dto.Nome, dto.Tipo, dto.PrecoKg, carne.Ativo);
+        carne.Update(dto.Nome, dto.Origem);
         await _repository.UpdateAsync(carne);
         await _repository.SaveChangesAsync();
         return MapToDto(carne);
@@ -64,7 +64,7 @@ public class CarneService : ICarneService
         {
             Id = carne.Id,
             Nome = carne.Nome,
-            Tipo = carne.Tipo,
+            Origem = carne.Origem,
             PrecoKg = carne.PrecoKg,
             Ativo = carne.Ativo
         };

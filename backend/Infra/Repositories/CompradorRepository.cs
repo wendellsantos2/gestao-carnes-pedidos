@@ -44,6 +44,11 @@ public class CompradorRepository : ICompradorRepository
         _context.Compradores.Remove(comprador);
     }
 
+    public async Task<bool> HasPedidosAsync(Guid compradorId)
+    {
+        return await _context.Pedidos.AnyAsync(p => p.CompradorId == compradorId);
+    }
+
     public async Task SaveChangesAsync()
     {
         await _context.SaveChangesAsync();

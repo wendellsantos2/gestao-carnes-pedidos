@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import {
   convertPrecoParaBrl,
   convertToBrl,
+  convertValorParaBrl,
+  calcPedidoTotalBrl,
   getCotacaoPorMoeda,
   parseCotacoesResponse,
   type CotacaoMoeda,
@@ -89,6 +91,34 @@ describe('convertPrecoParaBrl', () => {
   it('converte preço do sistema (USD) para BRL', () => {
     const cotacoes = { usd: cotacaoUsd, eur: cotacaoEur }
     expect(convertPrecoParaBrl(10, cotacoes, 'USD')).toBe(55)
+  })
+})
+
+describe('convertValorParaBrl', () => {
+  it('mantém valor em BRL sem conversão', () => {
+    const cotacoes = { usd: cotacaoUsd, eur: cotacaoEur }
+    expect(convertValorParaBrl(100, cotacoes, 'BRL')).toBe(100)
+  })
+
+  it('converte USD e EUR para BRL', () => {
+    const cotacoes = { usd: cotacaoUsd, eur: cotacaoEur }
+    expect(convertValorParaBrl(10, cotacoes, 'USD')).toBe(55)
+    expect(convertValorParaBrl(10, cotacoes, 'EUR')).toBe(62)
+  })
+})
+
+describe('calcPedidoTotalBrl', () => {
+  it('soma subtotais convertidos por moeda', () => {
+    const cotacoes = { usd: cotacaoUsd, eur: cotacaoEur }
+    expect(
+      calcPedidoTotalBrl(
+        [
+          { subtotal: 100, moeda: 'BRL' },
+          { subtotal: 10, moeda: 'USD' },
+        ],
+        cotacoes,
+      ),
+    ).toBe(155)
   })
 })
 

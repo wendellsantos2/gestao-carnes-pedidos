@@ -22,7 +22,7 @@ import LoadingButton from '../../components/LoadingButton'
 import { useErrorHandler } from '../../components/ErrorHandlerProvider'
 import { listCarnes } from '../../services/carnesService'
 import { listCompradores } from '../../services/compradoresService'
-import { convertPrecoParaBrl, MOEDA_PRECOS_SISTEMA } from '../../services/cotacaoService'
+import { calcPedidoTotalBrl } from '../../services/cotacaoService'
 import { useCotacoes } from '../../hooks/useCotacoes'
 import { resolveErrorMessage } from '../../utils/errorMessages'
 import type {
@@ -30,11 +30,12 @@ import type {
   Comprador,
   CreatePedidoItemPayload,
   CreatePedidoPayload,
+  MoedaPedido,
   Pedido,
   UpdatePedidoPayload,
 } from '../../types'
-import { PEDIDO_STATUS } from '../../types'
-import { formatCurrency } from '../../utils/format'
+import { MOEDAS_PEDIDO, PEDIDO_STATUS } from '../../types'
+import { formatCurrency, formatDate } from '../../utils/format'
 import {
   getFirstFieldError,
   hasFieldErrors,
@@ -54,9 +55,18 @@ interface PedidoFormDialogProps {
 interface ItemFormRow {
   carneId: string
   quantidade: number
+  precoUnitario: number
+  moeda: MoedaPedido
 }
 
-const emptyItem = (): ItemFormRow => ({ carneId: '', quantidade: 1 })
+const todayIsoDate = () => new Date().toISOString().slice(0, 10)
+
+const emptyItem = (): ItemFormRow => ({
+  carneId: '',
+  quantidade: 1,
+  precoUnitario: 0,
+  moeda: 'BRL',
+})
 
 export default function PedidoFormDialog({
   open,
@@ -75,9 +85,10 @@ export default function PedidoFormDialog({
   const [carnes, setCarnes] = useState<Carne[]>([])
   const [loadError, setLoadError] = useState('')
   const [compradorId, setCompradorId] = useState('')
+  const [dataPedido, setDataPedido] = useState(todayIsoDate())
   const [status, setStatus] = useState<string>('Pendente')
   const [items, setItems] = useState<ItemFormRow[]>([emptyItem()])
-  const [errors, setErrors] = useState<FieldErrors<'compradorId' | 'items'>>({})
+  const [errors, setErrors] = useState<FieldErrors<'compradorId' | 'items' | 'dataPedido'>>({})
 
   useEffect(() => {
     if (!open) return
@@ -106,12 +117,15 @@ export default function PedidoFormDialog({
 
     if (pedido) {
       setCompradorId(pedido.comprador.id)
+      setDataPedido(pedido.dataPedido.slice(0, 10))
       setStatus(pedido.status)
       setItems(
         pedido.items.length > 0
           ? pedido.items.map((item) => ({
               carneId: item.carneId,
               quantidade: item.quantidade,
+              precoUnitario: item.precoUnitario,
+              moeda: item.moeda,
             }))
           : [emptyItem()],
       )
@@ -119,6 +133,7 @@ export default function PedidoFormDialog({
     }
 
     setCompradorId('')
+    setDataPedido(todayIsoDate())
     setStatus('Pendente')
     setItems([emptyItem()])
     setErrors({})
@@ -129,24 +144,39 @@ export default function PedidoFormDialog({
     [items],
   )
 
-  const estimatedTotal = useMemo(() => {
-    return items.reduce((total, item) => {
-      const carne = carnes.find((c) => c.id === item.carneId)
-      if (!carne || item.quantidade <= 0) return total
-      return total + carne.precoKg * item.quantidade
-    }, 0)
-  }, [items, carnes])
+  const estimatedTotalBrl = useMemo(() => {
+    if (!cotacoes) return 0
+
+    const payloadItems = items
+      .filter((item) => item.carneId && item.quantidade > 0 && item.precoUnitario > 0)
+      .map((item) => ({
+        subtotal: item.precoUnitario * item.quantidade,
+        moeda: item.moeda,
+      }))
+
+    return calcPedidoTotalBrl(payloadItems, cotacoes)
+  }, [items, cotacoes])
 
   const updateItem = (index: number, field: keyof ItemFormRow, value: string) => {
     setItems((current) =>
-      current.map((item, itemIndex) =>
-        itemIndex === index
-          ? {
-              ...item,
-              [field]: field === 'quantidade' ? Number(value) : value,
-            }
-          : item,
-      ),
+      current.map((item, itemIndex) => {
+        if (itemIndex !== index) return item
+
+        if (field === 'carneId') {
+          const carne = carnes.find((c) => c.id === value)
+          return {
+            ...item,
+            carneId: value,
+            precoUnitario: carne?.precoKg ?? item.precoUnitario,
+          }
+        }
+
+        if (field === 'quantidade' || field === 'precoUnitario') {
+          return { ...item, [field]: Number(value) }
+        }
+
+        return { ...item, [field]: value as MoedaPedido }
+      }),
     )
   }
 
@@ -158,10 +188,12 @@ export default function PedidoFormDialog({
 
   const buildItemsPayload = (): CreatePedidoItemPayload[] =>
     items
-      .filter((item) => item.carneId && item.quantidade > 0)
+      .filter((item) => item.carneId && item.quantidade > 0 && item.precoUnitario > 0)
       .map((item) => ({
         carneId: item.carneId,
         quantidade: item.quantidade,
+        precoUnitario: item.precoUnitario,
+        moeda: item.moeda,
       }))
 
   const handleSubmit = (event: React.FormEvent) => {
@@ -182,13 +214,17 @@ export default function PedidoFormDialog({
         const currentItems = pedido.items.map((item) => ({
           carneId: item.carneId,
           quantidade: item.quantidade,
+          precoUnitario: item.precoUnitario,
+          moeda: item.moeda,
         }))
         const itemsChanged =
           nextItems.length !== currentItems.length ||
           nextItems.some(
             (item, index) =>
               item.carneId !== currentItems[index]?.carneId ||
-              item.quantidade !== currentItems[index]?.quantidade,
+              item.quantidade !== currentItems[index]?.quantidade ||
+              item.precoUnitario !== currentItems[index]?.precoUnitario ||
+              item.moeda !== currentItems[index]?.moeda,
           )
 
         if (itemsChanged) {
@@ -201,7 +237,7 @@ export default function PedidoFormDialog({
     }
 
     const nextItems = buildItemsPayload()
-    const formErrors = validatePedidoCreate(compradorId, nextItems)
+    const formErrors = validatePedidoCreate(compradorId, nextItems, dataPedido)
     setErrors(formErrors)
 
     if (hasFieldErrors(formErrors)) {
@@ -211,6 +247,7 @@ export default function PedidoFormDialog({
 
     onCreate({
       compradorId,
+      dataPedido,
       items: nextItems,
     })
   }
@@ -220,7 +257,7 @@ export default function PedidoFormDialog({
     if (errors.compradorId) {
       setErrors((current) => ({
         ...current,
-        compradorId: validatePedidoCreate(value, buildItemsPayload()).compradorId,
+        compradorId: validatePedidoCreate(value, buildItemsPayload(), dataPedido).compradorId,
       }))
     }
   }
@@ -234,28 +271,50 @@ export default function PedidoFormDialog({
             {loadError && <Alert severity="error">{loadError}</Alert>}
 
             {isEditing ? (
-              <TextField
-                label="Comprador"
-                value={pedido?.comprador.nome ?? ''}
-                fullWidth
-                disabled
-              />
-            ) : (
-              <FormControl fullWidth required error={Boolean(errors.compradorId)}>
-                <InputLabel>Comprador</InputLabel>
-                <Select
+              <>
+                <TextField
                   label="Comprador"
-                  value={compradorId}
-                  onChange={(e) => handleCompradorChange(e.target.value)}
-                >
-                  {compradores.map((comprador) => (
-                    <MenuItem key={comprador.id} value={comprador.id}>
-                      {comprador.nome}
-                    </MenuItem>
-                  ))}
-                </Select>
-                {errors.compradorId && <FormHelperText>{errors.compradorId}</FormHelperText>}
-              </FormControl>
+                  value={pedido?.comprador.nome ?? ''}
+                  fullWidth
+                  disabled
+                />
+                <TextField
+                  label="Data do pedido"
+                  value={formatDate(pedido?.dataPedido ?? '')}
+                  fullWidth
+                  disabled
+                />
+              </>
+            ) : (
+              <>
+                <FormControl fullWidth required error={Boolean(errors.compradorId)}>
+                  <InputLabel>Comprador</InputLabel>
+                  <Select
+                    label="Comprador"
+                    value={compradorId}
+                    onChange={(e) => handleCompradorChange(e.target.value)}
+                  >
+                    {compradores.map((comprador) => (
+                      <MenuItem key={comprador.id} value={comprador.id}>
+                        {comprador.nome}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                  {errors.compradorId && <FormHelperText>{errors.compradorId}</FormHelperText>}
+                </FormControl>
+
+                <TextField
+                  label="Data do pedido"
+                  type="date"
+                  value={dataPedido}
+                  onChange={(e) => setDataPedido(e.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                  required
+                  fullWidth
+                  error={Boolean(errors.dataPedido)}
+                  helperText={errors.dataPedido}
+                />
+              </>
             )}
 
             {isEditing && (
@@ -292,7 +351,7 @@ export default function PedidoFormDialog({
 
                 <Stack spacing={2}>
                   {items.map((item, index) => (
-                    <Stack key={index} direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                    <Stack key={index} direction={{ xs: 'column', md: 'row' }} spacing={1}>
                       <FormControl fullWidth required>
                         <InputLabel>Carne</InputLabel>
                         <Select
@@ -308,7 +367,30 @@ export default function PedidoFormDialog({
                                 selectedCarneIds.has(carne.id) && item.carneId !== carne.id
                               }
                             >
-                              {carne.nome} — {formatCurrency(carne.precoKg)}/kg
+                              {carne.nome} — {formatCurrency(carne.precoKg)}/kg (cadastro)
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                      <TextField
+                        label="Preço (kg)"
+                        type="number"
+                        inputProps={{ min: 0.01, step: 0.01 }}
+                        value={item.precoUnitario || ''}
+                        onChange={(e) => updateItem(index, 'precoUnitario', e.target.value)}
+                        required
+                        sx={{ minWidth: { md: 120 } }}
+                      />
+                      <FormControl required sx={{ minWidth: { md: 140 } }}>
+                        <InputLabel>Moeda</InputLabel>
+                        <Select
+                          label="Moeda"
+                          value={item.moeda}
+                          onChange={(e) => updateItem(index, 'moeda', e.target.value)}
+                        >
+                          {MOEDAS_PEDIDO.map((option) => (
+                            <MenuItem key={option.value} value={option.value}>
+                              {option.label}
                             </MenuItem>
                           ))}
                         </Select>
@@ -320,7 +402,7 @@ export default function PedidoFormDialog({
                         value={item.quantidade}
                         onChange={(e) => updateItem(index, 'quantidade', e.target.value)}
                         required
-                        sx={{ minWidth: { sm: 160 } }}
+                        sx={{ minWidth: { md: 140 } }}
                       />
                       <IconButton
                         color="error"
@@ -334,18 +416,18 @@ export default function PedidoFormDialog({
                   ))}
                 </Stack>
 
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-                  Total estimado ({MOEDA_PRECOS_SISTEMA}): {formatCurrency(estimatedTotal)}
-                  {cotacoes && (
-                    <>
-                      {' '}
-                      → em Real:{' '}
-                      {formatCurrency(convertPrecoParaBrl(estimatedTotal, cotacoes, MOEDA_PRECOS_SISTEMA))}
-                      {' '}
-                      (cotação {formatCurrency(cotacoes.usd.bid)}/{MOEDA_PRECOS_SISTEMA})
-                    </>
-                  )}
-                </Typography>
+                {cotacoes && (
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                    Total estimado em Real: {formatCurrency(estimatedTotalBrl)}
+                    {items.some((item) => item.moeda !== 'BRL') && (
+                      <>
+                        {' '}
+                        (USD/BRL: {formatCurrency(cotacoes.usd.bid)} · EUR/BRL:{' '}
+                        {formatCurrency(cotacoes.eur.bid)})
+                      </>
+                    )}
+                  </Typography>
+                )}
               </Box>
             )}
 

@@ -18,7 +18,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Carne>(entity =>
         {
             entity.Property(c => c.Nome).HasMaxLength(100).IsRequired();
-            entity.Property(c => c.Tipo).HasMaxLength(50).IsRequired();
+            entity.Property(c => c.Origem).HasMaxLength(50).IsRequired();
             entity.Property(c => c.PrecoKg).HasPrecision(10, 2);
             entity.Property(c => c.Ativo).IsRequired();
         });
@@ -26,9 +26,10 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Comprador>(entity =>
         {
             entity.Property(c => c.Nome).HasMaxLength(100).IsRequired();
-            entity.Property(c => c.Email).HasMaxLength(150).IsRequired();
-            entity.Property(c => c.Telefone).HasMaxLength(20).IsRequired();
-            entity.Property(c => c.Endereco).HasMaxLength(200).IsRequired();
+            entity.Property(c => c.Documento).HasMaxLength(14).IsRequired();
+            entity.Property(c => c.Cidade).HasMaxLength(100).IsRequired();
+            entity.Property(c => c.Estado).HasMaxLength(2).IsRequired();
+            entity.HasIndex(c => c.Documento).IsUnique();
         });
 
         modelBuilder.Entity<Pedido>(entity =>
@@ -52,6 +53,7 @@ public class AppDbContext : DbContext
         {
             entity.Property(pi => pi.Quantidade).HasPrecision(10, 3);
             entity.Property(pi => pi.PrecoUnitario).HasPrecision(10, 2);
+            entity.Property(pi => pi.Moeda).HasMaxLength(3).IsRequired();
             entity.Ignore(pi => pi.Subtotal);
 
             entity.HasOne<Pedido>()

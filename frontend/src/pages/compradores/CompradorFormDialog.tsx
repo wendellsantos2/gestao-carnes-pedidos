@@ -1,14 +1,21 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormControl,
+  FormHelperText,
+  InputLabel,
+  MenuItem,
+  Select,
   Stack,
   TextField,
 } from '@mui/material'
 import LoadingButton from '../../components/LoadingButton'
+import { ESTADOS_BRASIL, listarCidadesPorEstado } from '../../data/estadosCidades'
 import type { Comprador, CreateCompradorPayload } from '../../types'
+import { apenasDigitos, formatDocumento } from '../../utils/documento'
 import {
   hasFieldErrors,
   validateCompradorForm,
@@ -25,10 +32,12 @@ interface CompradorFormDialogProps {
 
 const emptyForm: CreateCompradorPayload = {
   nome: '',
-  email: '',
-  telefone: '',
-  endereco: '',
+  documento: '',
+  cidade: '',
+  estado: '',
 }
+
+type CompradorFormErrors = FieldErrors<'nome' | 'documento' | 'cidade' | 'estado'>
 
 export default function CompradorFormDialog({
   open,
@@ -38,7 +47,7 @@ export default function CompradorFormDialog({
   onSubmit,
 }: CompradorFormDialogProps) {
   const [form, setForm] = useState<CreateCompradorPayload>(emptyForm)
-  const [errors, setErrors] = useState<FieldErrors<'nome' | 'email'>>({})
+  const [errors, setErrors] = useState<CompradorFormErrors>({})
 
   useEffect(() => {
     if (!open) return
@@ -47,23 +56,29 @@ export default function CompradorFormDialog({
       comprador
         ? {
             nome: comprador.nome,
-            email: comprador.email,
-            telefone: comprador.telefone,
-            endereco: comprador.endereco,
+            documento: comprador.documento,
+            cidade: comprador.cidade,
+            estado: comprador.estado,
           }
         : emptyForm,
     )
     setErrors({})
   }, [open, comprador])
 
+  const cidades = useMemo(() => listarCidadesPorEstado(form.estado), [form.estado])
+
   const handleChange = (field: keyof CreateCompradorPayload, value: string) => {
-    const nextForm = { ...form, [field]: value }
+    const nextForm =
+      field === 'documento'
+        ? { ...form, documento: apenasDigitos(value).slice(0, 14) }
+        : field === 'estado'
+          ? { ...form, estado: value, cidade: '' }
+          : { ...form, [field]: value }
+
     setForm(nextForm)
 
-    if (field === 'nome' || field === 'email') {
-      const nextErrors = validateCompradorForm(nextForm)
-      setErrors((current) => ({ ...current, [field]: nextErrors[field] }))
-    }
+    const nextErrors = validateCompradorForm(nextForm)
+    setErrors((current) => ({ ...current, [field]: nextErrors[field] }))
   }
 
   const handleSubmit = (event: React.FormEvent) => {
@@ -74,7 +89,10 @@ export default function CompradorFormDialog({
 
     if (hasFieldErrors(nextErrors)) return
 
-    onSubmit(form)
+    onSubmit({
+      ...form,
+      documento: apenasDigitos(form.documento),
+    })
   }
 
   return (
@@ -84,7 +102,7 @@ export default function CompradorFormDialog({
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField
-              label="Nome"
+              label="Nome do comprador"
               value={form.nome}
               onChange={(e) => handleChange('nome', e.target.value)}
               error={Boolean(errors.nome)}
@@ -93,29 +111,50 @@ export default function CompradorFormDialog({
               fullWidth
             />
             <TextField
-              label="E-mail"
-              type="email"
-              value={form.email}
-              onChange={(e) => handleChange('email', e.target.value)}
-              error={Boolean(errors.email)}
-              helperText={errors.email}
+              label="Documento (CPF/CNPJ)"
+              value={formatDocumento(form.documento)}
+              onChange={(e) => handleChange('documento', e.target.value)}
+              error={Boolean(errors.documento)}
+              helperText={errors.documento ?? 'Informe CPF ou CNPJ.'}
               required
               fullWidth
+              inputProps={{ inputMode: 'numeric' }}
             />
-            <TextField
-              label="Telefone"
-              value={form.telefone}
-              onChange={(e) => handleChange('telefone', e.target.value)}
+            <FormControl fullWidth required error={Boolean(errors.estado)}>
+              <InputLabel>Estado</InputLabel>
+              <Select
+                label="Estado"
+                value={form.estado}
+                onChange={(e) => handleChange('estado', e.target.value)}
+              >
+                {ESTADOS_BRASIL.map((estado) => (
+                  <MenuItem key={estado.uf} value={estado.uf}>
+                    {estado.nome} ({estado.uf})
+                  </MenuItem>
+                ))}
+              </Select>
+              {errors.estado && <FormHelperText>{errors.estado}</FormHelperText>}
+            </FormControl>
+            <FormControl
               fullWidth
-            />
-            <TextField
-              label="Endereço"
-              value={form.endereco}
-              onChange={(e) => handleChange('endereco', e.target.value)}
-              fullWidth
-              multiline
-              minRows={2}
-            />
+              required
+              error={Boolean(errors.cidade)}
+              disabled={!form.estado}
+            >
+              <InputLabel>Cidade</InputLabel>
+              <Select
+                label="Cidade"
+                value={form.cidade}
+                onChange={(e) => handleChange('cidade', e.target.value)}
+              >
+                {cidades.map((cidade) => (
+                  <MenuItem key={cidade} value={cidade}>
+                    {cidade}
+                  </MenuItem>
+                ))}
+              </Select>
+              {errors.cidade && <FormHelperText>{errors.cidade}</FormHelperText>}
+            </FormControl>
           </Stack>
         </DialogContent>
         <DialogActions>

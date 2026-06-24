@@ -27,7 +27,7 @@ public class CompradorService : ICompradorService
 
     public async Task<CompradorDto> CreateAsync(CreateCompradorDto dto)
     {
-        var comprador = new Comprador(dto.Nome, dto.Email, dto.Telefone, dto.Endereco);
+        var comprador = new Comprador(dto.Nome, dto.Documento, dto.Cidade, dto.Estado);
         await _repository.AddAsync(comprador);
         await _repository.SaveChangesAsync();
         return MapToDto(comprador);
@@ -39,7 +39,7 @@ public class CompradorService : ICompradorService
         if (comprador is null)
             throw new KeyNotFoundException($"Comprador com id '{id}' não encontrado.");
 
-        comprador.Update(dto.Nome, dto.Email, dto.Telefone, dto.Endereco);
+        comprador.Update(dto.Nome, dto.Documento, dto.Cidade, dto.Estado);
         await _repository.UpdateAsync(comprador);
         await _repository.SaveChangesAsync();
         return MapToDto(comprador);
@@ -51,6 +51,9 @@ public class CompradorService : ICompradorService
         if (comprador is null)
             throw new KeyNotFoundException($"Comprador com id '{id}' não encontrado.");
 
+        if (await _repository.HasPedidosAsync(id))
+            throw new InvalidOperationException("Comprador possui pedidos vinculados");
+
         await _repository.DeleteAsync(id);
         await _repository.SaveChangesAsync();
     }
@@ -61,9 +64,9 @@ public class CompradorService : ICompradorService
         {
             Id = comprador.Id,
             Nome = comprador.Nome,
-            Email = comprador.Email,
-            Telefone = comprador.Telefone,
-            Endereco = comprador.Endereco
+            Documento = comprador.Documento,
+            Cidade = comprador.Cidade,
+            Estado = comprador.Estado
         };
     }
 }

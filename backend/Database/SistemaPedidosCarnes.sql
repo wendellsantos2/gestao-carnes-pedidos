@@ -42,7 +42,7 @@ CREATE TABLE [dbo].[Carnes]
 (
     [Id]       UNIQUEIDENTIFIER NOT NULL,
     [Nome]     NVARCHAR(100)    NOT NULL,
-    [Tipo]     NVARCHAR(50)     NOT NULL,
+    [Origem]   NVARCHAR(50)     NOT NULL,
     [PrecoKg]  DECIMAL(10, 2)   NOT NULL,
     [Ativo]    BIT              NOT NULL,
     CONSTRAINT [PK_Carnes] PRIMARY KEY ([Id])
@@ -51,12 +51,13 @@ GO
 
 CREATE TABLE [dbo].[Compradores]
 (
-    [Id]        UNIQUEIDENTIFIER NOT NULL,
-    [Nome]      NVARCHAR(100)    NOT NULL,
-    [Email]     NVARCHAR(150)    NOT NULL,
-    [Telefone]  NVARCHAR(20)     NOT NULL,
-    [Endereco]  NVARCHAR(200)    NOT NULL,
-    CONSTRAINT [PK_Compradores] PRIMARY KEY ([Id])
+    [Id]         UNIQUEIDENTIFIER NOT NULL,
+    [Nome]       NVARCHAR(100)    NOT NULL,
+    [Documento]  NVARCHAR(14)     NOT NULL,
+    [Cidade]     NVARCHAR(100)    NOT NULL,
+    [Estado]     NVARCHAR(2)      NOT NULL,
+    CONSTRAINT [PK_Compradores] PRIMARY KEY ([Id]),
+    CONSTRAINT [UQ_Compradores_Documento] UNIQUE ([Documento])
 );
 GO
 
@@ -77,6 +78,7 @@ CREATE TABLE [dbo].[PedidoItem]
     [CarneId]       UNIQUEIDENTIFIER NOT NULL,
     [Quantidade]    DECIMAL(10, 3)   NOT NULL,
     [PrecoUnitario] DECIMAL(10, 2)   NOT NULL,
+    [Moeda]         NVARCHAR(3)      NOT NULL CONSTRAINT [DF_PedidoItem_Moeda] DEFAULT N'BRL',
     CONSTRAINT [PK_PedidoItem] PRIMARY KEY ([Id])
 );
 GO
@@ -118,7 +120,7 @@ GO
 -- ----------------------------------------------------------------------------
 
 -- Carnes
-INSERT INTO [dbo].[Carnes] ([Id], [Nome], [Tipo], [PrecoKg], [Ativo])
+INSERT INTO [dbo].[Carnes] ([Id], [Nome], [Origem], [PrecoKg], [Ativo])
 VALUES
     ('11111111-1111-1111-1111-111111111101', N'Picanha',        N'Bovina', 89.90, 1),
     ('11111111-1111-1111-1111-111111111102', N'Alcatra',        N'Bovina', 54.50, 1),
@@ -128,27 +130,13 @@ VALUES
 GO
 
 -- Compradores (endereços com cidade e estado)
-INSERT INTO [dbo].[Compradores] ([Id], [Nome], [Email], [Telefone], [Endereco])
+INSERT INTO [dbo].[Compradores] ([Id], [Nome], [Documento], [Cidade], [Estado])
 VALUES
-    ('22222222-2222-2222-2222-222222222201', N'João Silva',
-     N'joao.silva@email.com', N'(11) 98765-4321',
-     N'Av. Paulista, 1000 - Bela Vista, São Paulo - SP'),
-
-    ('22222222-2222-2222-2222-222222222202', N'Maria Oliveira',
-     N'maria.oliveira@email.com', N'(21) 99876-5432',
-     N'Rua das Laranjeiras, 250 - Laranjeiras, Rio de Janeiro - RJ'),
-
-    ('22222222-2222-2222-2222-222222222203', N'Carlos Souza',
-     N'carlos.souza@email.com', N'(31) 97654-3210',
-     N'Av. Afonso Pena, 1500 - Centro, Belo Horizonte - MG'),
-
-    ('22222222-2222-2222-2222-222222222204', N'Ana Pereira',
-     N'ana.pereira@email.com', N'(41) 96543-2109',
-     N'Rua XV de Novembro, 300 - Centro, Curitiba - PR'),
-
-    ('22222222-2222-2222-2222-222222222205', N'Pedro Santos',
-     N'pedro.santos@email.com', N'(51) 95432-1098',
-     N'Av. Borges de Medeiros, 500 - Centro Histórico, Porto Alegre - RS');
+    ('22222222-2222-2222-2222-222222222201', N'João Silva',      N'52998224725', N'São Paulo',       N'SP'),
+    ('22222222-2222-2222-2222-222222222202', N'Maria Oliveira',  N'39053344705', N'Rio de Janeiro',  N'RJ'),
+    ('22222222-2222-2222-2222-222222222203', N'Carlos Souza',    N'15350946056', N'Belo Horizonte',  N'MG'),
+    ('22222222-2222-2222-2222-222222222204', N'Ana Pereira',     N'23100299900', N'Curitiba',        N'PR'),
+    ('22222222-2222-2222-2222-222222222205', N'Pedro Santos',    N'86734799073', N'Porto Alegre',    N'RS');
 GO
 
 -- Pedidos
@@ -161,27 +149,27 @@ VALUES
 GO
 
 -- Itens dos pedidos
-INSERT INTO [dbo].[PedidoItem] ([Id], [PedidoId], [CarneId], [Quantidade], [PrecoUnitario])
+INSERT INTO [dbo].[PedidoItem] ([Id], [PedidoId], [CarneId], [Quantidade], [PrecoUnitario], [Moeda])
 VALUES
     -- Pedido 1: João (São Paulo - SP)
     ('44444444-4444-4444-4444-444444444401', '33333333-3333-3333-3333-333333333301',
-     '11111111-1111-1111-1111-111111111101', 2.500, 89.90),
+     '11111111-1111-1111-1111-111111111101', 2.500, 89.90, N'BRL'),
     ('44444444-4444-4444-4444-444444444402', '33333333-3333-3333-3333-333333333301',
-     '11111111-1111-1111-1111-111111111102', 1.000, 54.50),
+     '11111111-1111-1111-1111-111111111102', 1.000, 54.50, N'BRL'),
 
     -- Pedido 2: Maria (Rio de Janeiro - RJ)
     ('44444444-4444-4444-4444-444444444403', '33333333-3333-3333-3333-333333333302',
-     '11111111-1111-1111-1111-111111111103', 3.000, 48.90),
+     '11111111-1111-1111-1111-111111111103', 3.000, 48.90, N'BRL'),
 
     -- Pedido 3: Carlos (Belo Horizonte - MG)
     ('44444444-4444-4444-4444-444444444404', '33333333-3333-3333-3333-333333333303',
-     '11111111-1111-1111-1111-111111111105', 2.000, 42.00),
+     '11111111-1111-1111-1111-111111111105', 2.000, 42.00, N'BRL'),
     ('44444444-4444-4444-4444-444444444405', '33333333-3333-3333-3333-333333333303',
-     '11111111-1111-1111-1111-111111111104', 1.500, 32.90),
+     '11111111-1111-1111-1111-111111111104', 1.500, 32.90, N'BRL'),
 
     -- Pedido 4: Ana (Curitiba - PR) - cancelado
     ('44444444-4444-4444-4444-444444444406', '33333333-3333-3333-3333-333333333304',
-     '11111111-1111-1111-1111-111111111101', 1.000, 89.90);
+     '11111111-1111-1111-1111-111111111101', 1.000, 89.90, N'BRL');
 GO
 
 -- ----------------------------------------------------------------------------
@@ -197,7 +185,8 @@ SELECT
     p.Id AS PedidoId,
     p.Status,
     c.Nome AS Comprador,
-    c.Endereco,
+    c.Cidade,
+    c.Estado,
     ca.Nome AS Carne,
     pi.Quantidade,
     pi.PrecoUnitario,

@@ -4,11 +4,17 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormControl,
+  FormHelperText,
+  InputLabel,
+  MenuItem,
+  Select,
   Stack,
   TextField,
 } from '@mui/material'
 import LoadingButton from '../../components/LoadingButton'
-import type { Carne, CreateCarnePayload } from '../../types'
+import type { Carne, CreateCarnePayload, OrigemCarne } from '../../types'
+import { ORIGENS_CARNE } from '../../types'
 import {
   hasFieldErrors,
   validateCarneForm,
@@ -25,9 +31,10 @@ interface CarneFormDialogProps {
 
 const emptyForm: CreateCarnePayload = {
   nome: '',
-  tipo: '',
-  precoKg: 0,
+  origem: '' as OrigemCarne,
 }
+
+type CarneFormErrors = FieldErrors<'nome' | 'origem'>
 
 export default function CarneFormDialog({
   open,
@@ -37,24 +44,21 @@ export default function CarneFormDialog({
   onSubmit,
 }: CarneFormDialogProps) {
   const [form, setForm] = useState<CreateCarnePayload>(emptyForm)
-  const [errors, setErrors] = useState<FieldErrors<'nome' | 'tipo' | 'precoKg'>>({})
+  const [errors, setErrors] = useState<CarneFormErrors>({})
 
   useEffect(() => {
     if (!open) return
 
     setForm(
       carne
-        ? { nome: carne.nome, tipo: carne.tipo, precoKg: carne.precoKg }
+        ? { nome: carne.nome, origem: carne.origem }
         : emptyForm,
     )
     setErrors({})
   }, [open, carne])
 
   const handleChange = (field: keyof CreateCarnePayload, value: string) => {
-    const nextForm = {
-      ...form,
-      [field]: field === 'precoKg' ? Number(value) : value,
-    }
+    const nextForm = { ...form, [field]: value }
     setForm(nextForm)
 
     if (errors[field]) {
@@ -81,34 +85,29 @@ export default function CarneFormDialog({
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField
-              label="Nome"
+              label="Descrição da carne"
               value={form.nome}
               onChange={(e) => handleChange('nome', e.target.value)}
               error={Boolean(errors.nome)}
-              helperText={errors.nome}
+              helperText={errors.nome ?? 'Campo obrigatório.'}
               required
               fullWidth
             />
-            <TextField
-              label="Tipo"
-              value={form.tipo}
-              onChange={(e) => handleChange('tipo', e.target.value)}
-              error={Boolean(errors.tipo)}
-              helperText={errors.tipo}
-              required
-              fullWidth
-            />
-            <TextField
-              label="Preço por kg (USD)"
-              type="number"
-              inputProps={{ min: 0.01, step: 0.01 }}
-              value={form.precoKg || ''}
-              onChange={(e) => handleChange('precoKg', e.target.value)}
-              error={Boolean(errors.precoKg)}
-              helperText={errors.precoKg ?? 'Informe um valor maior que zero.'}
-              required
-              fullWidth
-            />
+            <FormControl fullWidth required error={Boolean(errors.origem)}>
+              <InputLabel>Origem</InputLabel>
+              <Select
+                label="Origem"
+                value={form.origem}
+                onChange={(e) => handleChange('origem', e.target.value)}
+              >
+                {ORIGENS_CARNE.map((origem) => (
+                  <MenuItem key={origem} value={origem}>
+                    {origem}
+                  </MenuItem>
+                ))}
+              </Select>
+              {errors.origem && <FormHelperText>{errors.origem}</FormHelperText>}
+            </FormControl>
           </Stack>
         </DialogContent>
         <DialogActions>

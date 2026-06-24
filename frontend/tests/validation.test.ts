@@ -23,17 +23,38 @@ describe('validatePositivePrice', () => {
 })
 
 describe('validateCarneForm', () => {
-  it('valida campos obrigatórios e preço positivo', () => {
-    const errors = validateCarneForm({ nome: '', tipo: '', precoKg: 0 })
+  it('valida descrição e origem obrigatórias', () => {
+    const errors = validateCarneForm({ nome: '', origem: '' as never })
     expect(hasFieldErrors(errors)).toBe(true)
     expect(errors.nome).toBeTruthy()
-    expect(errors.precoKg).toBeTruthy()
+    expect(errors.origem).toBeTruthy()
+  })
+
+  it('aceita descrição e origem válidas', () => {
+    const errors = validateCarneForm({ nome: 'Picanha', origem: 'Bovina' })
+    expect(hasFieldErrors(errors)).toBe(false)
   })
 })
 
 describe('validateCompradorForm', () => {
-  it('exige nome do comprador', () => {
-    const errors = validateCompradorForm({ nome: '', email: 'a@b.com', telefone: '', endereco: '' })
+  it('exige nome e documento do comprador', () => {
+    const errors = validateCompradorForm({
+      nome: '',
+      documento: '',
+      cidade: '',
+      estado: '',
+    })
     expect(errors.nome).toBe('Nome do comprador é obrigatório.')
+    expect(errors.documento).toBe('Documento é obrigatório.')
+  })
+
+  it('aceita CPF válido com cidade e estado', () => {
+    const errors = validateCompradorForm({
+      nome: 'João Silva',
+      documento: '52998224725',
+      cidade: 'São Paulo',
+      estado: 'SP',
+    })
+    expect(hasFieldErrors(errors)).toBe(false)
   })
 })

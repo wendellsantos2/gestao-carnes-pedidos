@@ -8,8 +8,5 @@ public class CreateCarneDto
     public string Nome { get; set; } = string.Empty;
 
     [Required]
-    public string Tipo { get; set; } = string.Empty;
-
-    [Range(0.01, double.MaxValue)]
-    public decimal PrecoKg { get; set; }
+    public string Origem { get; set; } = string.Empty;
 }

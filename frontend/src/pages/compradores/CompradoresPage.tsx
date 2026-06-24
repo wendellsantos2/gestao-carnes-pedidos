@@ -12,6 +12,7 @@ import {
   TableHead,
   TableRow,
   Tooltip,
+  Typography,
 } from '@mui/material'
 import { Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material'
 import ConfirmDialog from '../../components/ConfirmDialog'
@@ -24,6 +25,7 @@ import {
   updateComprador,
 } from '../../services/compradoresService'
 import type { Comprador, CreateCompradorPayload } from '../../types'
+import { formatDocumento, formatShortId } from '../../utils/documento'
 import { resolveErrorMessage } from '../../utils/errorMessages'
 import CompradorFormDialog from './CompradorFormDialog'
 
@@ -122,34 +124,42 @@ export default function CompradoresPage() {
           <Table>
             <TableHead>
               <TableRow>
+                <TableCell>Id</TableCell>
                 <TableCell>Nome</TableCell>
-                <TableCell>E-mail</TableCell>
-                <TableCell>Telefone</TableCell>
-                <TableCell>Endereço</TableCell>
+                <TableCell>Documento</TableCell>
                 <TableCell align="right">Ações</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {compradores.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} align="center">
+                  <TableCell colSpan={4} align="center">
                     Nenhum comprador cadastrado.
                   </TableCell>
                 </TableRow>
               ) : (
                 compradores.map((comprador) => (
                   <TableRow key={comprador.id} hover>
+                    <TableCell>
+                      <Tooltip title={comprador.id}>
+                        <Typography
+                          component="span"
+                          variant="body2"
+                          sx={{ fontFamily: 'monospace' }}
+                        >
+                          {formatShortId(comprador.id)}
+                        </Typography>
+                      </Tooltip>
+                    </TableCell>
                     <TableCell>{comprador.nome}</TableCell>
-                    <TableCell>{comprador.email}</TableCell>
-                    <TableCell>{comprador.telefone || '—'}</TableCell>
-                    <TableCell>{comprador.endereco || '—'}</TableCell>
+                    <TableCell>{formatDocumento(comprador.documento)}</TableCell>
                     <TableCell align="right">
                       <Tooltip title="Editar">
                         <IconButton onClick={() => handleEdit(comprador)}>
                           <EditIcon />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="Excluir">
+                      <Tooltip title="Excluir (somente sem pedidos vinculados)">
                         <IconButton color="error" onClick={() => setDeleteTarget(comprador)}>
                           <DeleteIcon />
                         </IconButton>

@@ -9,5 +9,6 @@ public interface ICompradorRepository
     Task AddAsync(Comprador comprador);
     Task UpdateAsync(Comprador comprador);
     Task DeleteAsync(Guid id);
+    Task<bool> HasPedidosAsync(Guid compradorId);
     Task SaveChangesAsync();
 }

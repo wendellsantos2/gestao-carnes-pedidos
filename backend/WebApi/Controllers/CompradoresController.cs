@@ -22,7 +22,7 @@ public class CompradoresController : ControllerBase
     /// <summary>
     /// Lista todos os compradores cadastrados.
     /// </summary>
-    /// <returns>Lista com id, nome, e-mail, telefone e endereço.</returns>
+    /// <returns>Lista com id, nome, documento, cidade e estado.</returns>
     /// <response code="200">Lista de compradores retornada com sucesso.</response>
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<CompradorDto>), StatusCodes.Status200OK)]
@@ -54,7 +54,7 @@ public class CompradoresController : ControllerBase
     /// <summary>
     /// Cadastra um novo comprador.
     /// </summary>
-    /// <param name="dto">Nome, e-mail, telefone e endereço do comprador.</param>
+    /// <param name="dto">Nome, documento, cidade e estado do comprador.</param>
     /// <returns>Comprador criado com o id gerado.</returns>
     /// <response code="201">Comprador criado com sucesso.</response>
     /// <response code="400">Dados inválidos (validação do modelo).</response>
@@ -71,7 +71,7 @@ public class CompradoresController : ControllerBase
     /// Atualiza os dados de um comprador existente.
     /// </summary>
     /// <param name="id">Id do comprador a ser editado.</param>
-    /// <param name="dto">Novos nome, e-mail, telefone e endereço.</param>
+    /// <param name="dto">Novos nome, documento, cidade e estado.</param>
     /// <returns>Comprador atualizado.</returns>
     /// <response code="200">Comprador atualizado com sucesso.</response>
     /// <response code="400">Dados inválidos (validação do modelo).</response>
@@ -99,9 +99,11 @@ public class CompradoresController : ControllerBase
     /// <param name="id">Id do comprador a ser excluído.</param>
     /// <returns>Sem conteúdo em caso de sucesso.</returns>
     /// <response code="204">Comprador excluído com sucesso.</response>
+    /// <response code="400">Comprador possui pedidos vinculados e não pode ser excluído.</response>
     /// <response code="404">Comprador não encontrado.</response>
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id)
     {
@@ -109,6 +111,10 @@ public class CompradoresController : ControllerBase
         {
             await _service.DeleteAsync(id);
             return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
         }
         catch (KeyNotFoundException)
         {

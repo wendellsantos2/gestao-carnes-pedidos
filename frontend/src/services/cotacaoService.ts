@@ -4,6 +4,8 @@ import { resolveErrorMessage } from '../utils/errorMessages'
 const COTACAO_API_URL =
   import.meta.env.VITE_COTACAO_API_URL ?? '/cotacao/json/last/USD-BRL,EUR-BRL'
 
+import type { MoedaPedido } from '../types'
+
 export type MoedaEstrangeira = 'USD' | 'EUR'
 
 /** Moeda em que os preços de carnes e pedidos são armazenados no sistema. */
@@ -108,4 +110,40 @@ export function convertPrecoParaBrl(
   moeda: MoedaEstrangeira = 'USD',
 ): number {
   return convertToBrl(valorNaMoedaOrigem, getCotacaoPorMoeda(cotacoes, moeda))
+}
+
+export function convertValorParaBrl(
+  valor: number,
+  cotacoes: CotacoesUsdEur,
+  moeda: MoedaPedido,
+): number {
+  if (moeda === 'BRL') {
+    return Number(valor.toFixed(2))
+  }
+
+  return convertPrecoParaBrl(valor, cotacoes, moeda)
+}
+
+export function calcPedidoTotalBrl(
+  items: { subtotal: number; moeda: MoedaPedido }[],
+  cotacoes: CotacoesUsdEur,
+): number {
+  return Number(
+    items
+      .reduce((total, item) => total + convertValorParaBrl(item.subtotal, cotacoes, item.moeda), 0)
+      .toFixed(2),
+  )
+}
+
+export function simboloMoeda(moeda: MoedaPedido): string {
+  switch (moeda) {
+    case 'BRL':
+      return 'R$'
+    case 'USD':
+      return 'US$'
+    case 'EUR':
+      return '€'
+    default:
+      return moeda
+  }
 }

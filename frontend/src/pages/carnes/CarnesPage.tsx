@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   Alert,
   Box,
-  Chip,
   CircularProgress,
   IconButton,
   Paper,
@@ -13,6 +12,7 @@ import {
   TableHead,
   TableRow,
   Tooltip,
+  Typography,
 } from '@mui/material'
 import { Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material'
 import ConfirmDialog from '../../components/ConfirmDialog'
@@ -20,7 +20,7 @@ import { useErrorHandler } from '../../components/ErrorHandlerProvider'
 import PageHeader from '../../components/PageHeader'
 import { createCarne, deleteCarne, listCarnes, updateCarne } from '../../services/carnesService'
 import type { Carne, CreateCarnePayload } from '../../types'
-import { formatCurrency } from '../../utils/format'
+import { formatShortId } from '../../utils/documento'
 import { resolveErrorMessage } from '../../utils/errorMessages'
 import CarneFormDialog from './CarneFormDialog'
 
@@ -119,40 +119,42 @@ export default function CarnesPage() {
           <Table>
             <TableHead>
               <TableRow>
+                <TableCell>Id</TableCell>
                 <TableCell>Nome</TableCell>
-                <TableCell>Tipo</TableCell>
-                <TableCell>Preço/kg</TableCell>
-                <TableCell>Status</TableCell>
+                <TableCell>Origem</TableCell>
                 <TableCell align="right">Ações</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {carnes.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} align="center">
+                  <TableCell colSpan={4} align="center">
                     Nenhuma carne cadastrada.
                   </TableCell>
                 </TableRow>
               ) : (
                 carnes.map((carne) => (
                   <TableRow key={carne.id} hover>
-                    <TableCell>{carne.nome}</TableCell>
-                    <TableCell>{carne.tipo}</TableCell>
-                    <TableCell>{formatCurrency(carne.precoKg)}</TableCell>
                     <TableCell>
-                      <Chip
-                        label={carne.ativo ? 'Ativo' : 'Inativo'}
-                        color={carne.ativo ? 'success' : 'default'}
-                        size="small"
-                      />
+                      <Tooltip title={carne.id}>
+                        <Typography
+                          component="span"
+                          variant="body2"
+                          sx={{ fontFamily: 'monospace' }}
+                        >
+                          {formatShortId(carne.id)}
+                        </Typography>
+                      </Tooltip>
                     </TableCell>
+                    <TableCell>{carne.nome}</TableCell>
+                    <TableCell>{carne.origem}</TableCell>
                     <TableCell align="right">
                       <Tooltip title="Editar">
                         <IconButton onClick={() => handleEdit(carne)}>
                           <EditIcon />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="Excluir">
+                      <Tooltip title="Excluir (somente sem pedidos vinculados)">
                         <IconButton color="error" onClick={() => setDeleteTarget(carne)}>
                           <DeleteIcon />
                         </IconButton>

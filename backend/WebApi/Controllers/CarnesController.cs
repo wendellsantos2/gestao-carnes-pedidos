@@ -22,7 +22,7 @@ public class CarnesController : ControllerBase
     /// <summary>
     /// Lista todas as carnes cadastradas.
     /// </summary>
-    /// <returns>Lista com id, nome, tipo, preço por kg e status ativo.</returns>
+    /// <returns>Lista com id, nome, origem e dados internos de preço.</returns>
     /// <response code="200">Lista de carnes retornada com sucesso.</response>
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<CarneDto>), StatusCodes.Status200OK)]
@@ -54,7 +54,7 @@ public class CarnesController : ControllerBase
     /// <summary>
     /// Cadastra uma nova carne.
     /// </summary>
-    /// <param name="dto">Nome, tipo e preço por kg da carne.</param>
+    /// <param name="dto">Descrição (nome) e origem da carne.</param>
     /// <returns>Carne criada com o id gerado.</returns>
     /// <response code="201">Carne criada com sucesso.</response>
     /// <response code="400">Dados inválidos (validação do modelo).</response>
@@ -71,7 +71,7 @@ public class CarnesController : ControllerBase
     /// Atualiza os dados de uma carne existente.
     /// </summary>
     /// <param name="id">Id da carne a ser editada.</param>
-    /// <param name="dto">Novos nome, tipo e preço por kg.</param>
+    /// <param name="dto">Nova descrição (nome) e origem.</param>
     /// <returns>Carne atualizada.</returns>
     /// <response code="200">Carne atualizada com sucesso.</response>
     /// <response code="400">Dados inválidos (validação do modelo).</response>

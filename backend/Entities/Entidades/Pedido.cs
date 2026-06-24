@@ -26,7 +26,7 @@ public class Pedido
         Status = PedidoStatus.Pendente;
     }
 
-    public void AdicionarItem(Guid carneId, decimal quantidade, decimal precoUnitario)
+    public void AdicionarItem(Guid carneId, decimal quantidade, decimal precoUnitario, string moeda)
     {
         if (carneId == Guid.Empty)
             throw new ArgumentException("Carne é obrigatória.", nameof(carneId));
@@ -37,7 +37,7 @@ public class Pedido
         if (_itens.Any(i => i.CarneId == carneId))
             throw new InvalidOperationException("Carne já adicionada ao pedido.");
 
-        _itens.Add(new PedidoItem(Id, carneId, quantidade, precoUnitario));
+        _itens.Add(new PedidoItem(Id, carneId, quantidade, precoUnitario, moeda));
     }
 
     public decimal CalcularTotal() => _itens.Sum(i => i.Subtotal);

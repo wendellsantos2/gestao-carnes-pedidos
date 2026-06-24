@@ -4,6 +4,7 @@ using Infra.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Infra.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260624004325_AtualizaCompradorDocumentoCidadeEstado")]
+    partial class AtualizaCompradorDocumentoCidadeEstado
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -40,14 +43,14 @@ namespace Infra.Data.Migrations
                         .HasPrecision(10, 2)
                         .HasColumnType("decimal(10,2)");
 
-                    b.Property<string>("Origem")
+                    b.Property<string>("Tipo")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
                     b.HasKey("Id");
 
-                    b.ToTable("Carnes", (string)null);
+                    b.ToTable("Carnes");
                 });
 
             modelBuilder.Entity("Entities.Entidades.Comprador", b =>
@@ -56,32 +59,29 @@ namespace Infra.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("Cidade")
+                    b.Property<string>("Email")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
 
-                    b.Property<string>("Documento")
+                    b.Property<string>("Endereco")
                         .IsRequired()
-                        .HasMaxLength(14)
-                        .HasColumnType("nvarchar(14)");
-
-                    b.Property<string>("Estado")
-                        .IsRequired()
-                        .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("Nome")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<string>("Telefone")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("Documento")
-                        .IsUnique();
-
-                    b.ToTable("Compradores", (string)null);
+                    b.ToTable("Compradores");
                 });
 
             modelBuilder.Entity("Entities.Entidades.Pedido", b =>
@@ -105,7 +105,7 @@ namespace Infra.Data.Migrations
 
                     b.HasIndex("CompradorId");
 
-                    b.ToTable("Pedidos", (string)null);
+                    b.ToTable("Pedidos");
                 });
 
             modelBuilder.Entity("Entities.Entidades.PedidoItem", b =>
@@ -140,7 +140,7 @@ namespace Infra.Data.Migrations
                     b.HasIndex("PedidoId", "CarneId")
                         .IsUnique();
 
-                    b.ToTable("PedidoItem", (string)null);
+                    b.ToTable("PedidoItem");
                 });
 
             modelBuilder.Entity("Entities.Entidades.Pedido", b =>
@@ -156,7 +156,7 @@ namespace Infra.Data.Migrations
 
             modelBuilder.Entity("Entities.Entidades.PedidoItem", b =>
                 {
-                    b.HasOne("Entities.Entidades.Carne", null)
+                    b.HasOne("Entities.Entidades.Carne", "Carne")
                         .WithMany()
                         .HasForeignKey("CarneId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -167,6 +167,8 @@ namespace Infra.Data.Migrations
                         .HasForeignKey("PedidoId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Carne");
                 });
 
             modelBuilder.Entity("Entities.Entidades.Pedido", b =>
