@@ -13,7 +13,19 @@ import {
   TextField,
 } from '@mui/material'
 import LoadingButton from '../../components/LoadingButton'
-import { ESTADOS_BRASIL, listarCidadesPorEstado } from '../../data/estadosCidades'
+import {
+  ESTADOS_BRASIL,
+  inicializarLocalidadeComprador,
+  isOutroCidade,
+  isOutroEstado,
+  LABEL_OUTRO_CIDADE,
+  LABEL_OUTRO_ESTADO,
+  listarCidadesPorEstado,
+  OUTRO_CIDADE,
+  OUTRO_ESTADO,
+  resolveCompradorLocalidade,
+  type CompradorLocalidadeInput,
+} from '../../data/estadosCidades'
 import type { Comprador, CreateCompradorPayload } from '../../types'
 import { apenasDigitos, formatDocumento } from '../../utils/documento'
 import {
@@ -37,6 +49,13 @@ const emptyForm: CreateCompradorPayload = {
   estado: '',
 }
 
+const emptyLocalidade: CompradorLocalidadeInput = {
+  estadoSelecionado: '',
+  estadoCustom: '',
+  cidadeSelecionada: '',
+  cidadeCustom: '',
+}
+
 type CompradorFormErrors = FieldErrors<'nome' | 'documento' | 'cidade' | 'estado'>
 
 export default function CompradorFormDialog({
@@ -47,6 +66,7 @@ export default function CompradorFormDialog({
   onSubmit,
 }: CompradorFormDialogProps) {
   const [form, setForm] = useState<CreateCompradorPayload>(emptyForm)
+  const [localidade, setLocalidade] = useState<CompradorLocalidadeInput>(emptyLocalidade)
   const [errors, setErrors] = useState<CompradorFormErrors>({})
 
   useEffect(() => {
@@ -62,36 +82,83 @@ export default function CompradorFormDialog({
           }
         : emptyForm,
     )
+    setLocalidade(inicializarLocalidadeComprador(comprador))
     setErrors({})
   }, [open, comprador])
 
-  const cidades = useMemo(() => listarCidadesPorEstado(form.estado), [form.estado])
+  const ufParaCidades = useMemo(() => {
+    if (isOutroEstado(localidade.estadoSelecionado)) {
+      return localidade.estadoCustom.trim().toUpperCase()
+    }
+    return localidade.estadoSelecionado
+  }, [localidade.estadoSelecionado, localidade.estadoCustom])
+
+  const cidades = useMemo(() => listarCidadesPorEstado(ufParaCidades), [ufParaCidades])
+
+  const podeSelecionarCidade = Boolean(
+    localidade.estadoSelecionado &&
+      (!isOutroEstado(localidade.estadoSelecionado) || localidade.estadoCustom.trim().length === 2),
+  )
+
+  const validar = (nextForm: CreateCompradorPayload, nextLocalidade: CompradorLocalidadeInput) =>
+    validateCompradorForm(nextForm, nextLocalidade)
 
   const handleChange = (field: keyof CreateCompradorPayload, value: string) => {
     const nextForm =
       field === 'documento'
         ? { ...form, documento: apenasDigitos(value).slice(0, 14) }
-        : field === 'estado'
-          ? { ...form, estado: value, cidade: '' }
-          : { ...form, [field]: value }
+        : { ...form, [field]: value }
 
     setForm(nextForm)
 
-    const nextErrors = validateCompradorForm(nextForm)
-    setErrors((current) => ({ ...current, [field]: nextErrors[field] }))
+    if (errors[field]) {
+      const nextErrors = validar(nextForm, localidade)
+      setErrors((current) => ({ ...current, [field]: nextErrors[field] }))
+    }
+  }
+
+  const handleLocalidadeChange = (patch: Partial<CompradorLocalidadeInput>) => {
+    const nextLocalidade = { ...localidade, ...patch }
+
+    if (patch.estadoSelecionado !== undefined && patch.estadoSelecionado !== localidade.estadoSelecionado) {
+      nextLocalidade.cidadeSelecionada = ''
+      nextLocalidade.cidadeCustom = ''
+      if (!isOutroEstado(patch.estadoSelecionado)) {
+        nextLocalidade.estadoCustom = ''
+      }
+    }
+
+    if (patch.cidadeSelecionada !== undefined && !isOutroCidade(patch.cidadeSelecionada)) {
+      nextLocalidade.cidadeCustom = ''
+    }
+
+    setLocalidade(nextLocalidade)
+
+    if (errors.estado || errors.cidade) {
+      const nextErrors = validar(form, nextLocalidade)
+      setErrors((current) => ({
+        ...current,
+        estado: nextErrors.estado,
+        cidade: nextErrors.cidade,
+      }))
+    }
   }
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault()
 
-    const nextErrors = validateCompradorForm(form)
+    const nextErrors = validar(form, localidade)
     setErrors(nextErrors)
 
     if (hasFieldErrors(nextErrors)) return
 
+    const { estado, cidade } = resolveCompradorLocalidade(localidade)
+
     onSubmit({
-      ...form,
+      nome: form.nome,
       documento: apenasDigitos(form.documento),
+      estado,
+      cidade,
     })
   }
 
@@ -124,37 +191,68 @@ export default function CompradorFormDialog({
               <InputLabel>Estado</InputLabel>
               <Select
                 label="Estado"
-                value={form.estado}
-                onChange={(e) => handleChange('estado', e.target.value)}
+                value={localidade.estadoSelecionado}
+                onChange={(e) => handleLocalidadeChange({ estadoSelecionado: e.target.value })}
               >
                 {ESTADOS_BRASIL.map((estado) => (
                   <MenuItem key={estado.uf} value={estado.uf}>
                     {estado.nome} ({estado.uf})
                   </MenuItem>
                 ))}
+                <MenuItem value={OUTRO_ESTADO}>{LABEL_OUTRO_ESTADO}</MenuItem>
               </Select>
-              {errors.estado && <FormHelperText>{errors.estado}</FormHelperText>}
+              {errors.estado && !isOutroEstado(localidade.estadoSelecionado) && (
+                <FormHelperText>{errors.estado}</FormHelperText>
+              )}
             </FormControl>
+            {isOutroEstado(localidade.estadoSelecionado) && (
+              <TextField
+                label="UF do estado"
+                value={localidade.estadoCustom}
+                onChange={(e) =>
+                  handleLocalidadeChange({ estadoCustom: e.target.value.toUpperCase().slice(0, 2) })
+                }
+                error={Boolean(errors.estado)}
+                helperText={errors.estado ?? 'Informe a sigla com 2 letras (ex.: SP, MG).'}
+                required
+                fullWidth
+                inputProps={{ maxLength: 2 }}
+              />
+            )}
             <FormControl
               fullWidth
               required
               error={Boolean(errors.cidade)}
-              disabled={!form.estado}
+              disabled={!podeSelecionarCidade}
             >
               <InputLabel>Cidade</InputLabel>
               <Select
                 label="Cidade"
-                value={form.cidade}
-                onChange={(e) => handleChange('cidade', e.target.value)}
+                value={localidade.cidadeSelecionada}
+                onChange={(e) => handleLocalidadeChange({ cidadeSelecionada: e.target.value })}
               >
                 {cidades.map((cidade) => (
                   <MenuItem key={cidade} value={cidade}>
                     {cidade}
                   </MenuItem>
                 ))}
+                <MenuItem value={OUTRO_CIDADE}>{LABEL_OUTRO_CIDADE}</MenuItem>
               </Select>
-              {errors.cidade && <FormHelperText>{errors.cidade}</FormHelperText>}
+              {errors.cidade && !isOutroCidade(localidade.cidadeSelecionada) && (
+                <FormHelperText>{errors.cidade}</FormHelperText>
+              )}
             </FormControl>
+            {isOutroCidade(localidade.cidadeSelecionada) && (
+              <TextField
+                label="Nome da cidade"
+                value={localidade.cidadeCustom}
+                onChange={(e) => handleLocalidadeChange({ cidadeCustom: e.target.value })}
+                error={Boolean(errors.cidade)}
+                helperText={errors.cidade ?? 'Informe o nome da cidade.'}
+                required
+                fullWidth
+              />
+            )}
           </Stack>
         </DialogContent>
         <DialogActions>

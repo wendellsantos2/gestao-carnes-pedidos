@@ -1,3 +1,9 @@
+export const OUTRO_ESTADO = '__OUTRO_ESTADO__'
+export const OUTRO_CIDADE = '__OUTRO_CIDADE__'
+
+export const LABEL_OUTRO_ESTADO = 'Outro (informar UF)'
+export const LABEL_OUTRO_CIDADE = 'Outro (informar cidade)'
+
 export interface EstadoBrasil {
   uf: string
   nome: string
@@ -73,4 +79,59 @@ export function isEstadoValido(uf: string): boolean {
 
 export function isCidadeValidaParaEstado(cidade: string, uf: string): boolean {
   return listarCidadesPorEstado(uf).includes(cidade)
+}
+
+export function isOutroEstado(value: string): boolean {
+  return value === OUTRO_ESTADO
+}
+
+export function isOutroCidade(value: string): boolean {
+  return value === OUTRO_CIDADE
+}
+
+export interface CompradorLocalidadeInput {
+  estadoSelecionado: string
+  estadoCustom: string
+  cidadeSelecionada: string
+  cidadeCustom: string
+}
+
+export function resolveCompradorLocalidade(input: CompradorLocalidadeInput): {
+  estado: string
+  cidade: string
+} {
+  const estado = isOutroEstado(input.estadoSelecionado)
+    ? input.estadoCustom.trim().toUpperCase()
+    : input.estadoSelecionado
+
+  const cidade = isOutroCidade(input.cidadeSelecionada)
+    ? input.cidadeCustom.trim()
+    : input.cidadeSelecionada
+
+  return { estado, cidade }
+}
+
+export function inicializarLocalidadeComprador(comprador?: {
+  estado: string
+  cidade: string
+} | null): CompradorLocalidadeInput {
+  if (!comprador) {
+    return {
+      estadoSelecionado: '',
+      estadoCustom: '',
+      cidadeSelecionada: '',
+      cidadeCustom: '',
+    }
+  }
+
+  const estadoNaLista = isEstadoValido(comprador.estado)
+  const cidades = estadoNaLista ? listarCidadesPorEstado(comprador.estado) : []
+  const cidadeNaLista = cidades.includes(comprador.cidade)
+
+  return {
+    estadoSelecionado: estadoNaLista ? comprador.estado : OUTRO_ESTADO,
+    estadoCustom: estadoNaLista ? '' : comprador.estado,
+    cidadeSelecionada: cidadeNaLista ? comprador.cidade : OUTRO_CIDADE,
+    cidadeCustom: cidadeNaLista ? '' : comprador.cidade,
+  }
 }

@@ -1,6 +1,13 @@
 import type { CreateCarnePayload, CreateCompradorPayload, CreatePedidoItemPayload, MoedaPedido, OrigemCarne } from '../types'
 import { MOEDAS_PEDIDO, ORIGENS_CARNE } from '../types'
-import { isCidadeValidaParaEstado, isEstadoValido } from '../data/estadosCidades'
+import {
+  isCidadeValidaParaEstado,
+  isEstadoValido,
+  isOutroCidade,
+  isOutroEstado,
+  resolveCompradorLocalidade,
+  type CompradorLocalidadeInput,
+} from '../data/estadosCidades'
 import { apenasDigitos } from './documento'
 
 export type FieldErrors<T extends string> = Partial<Record<T, string>>
@@ -67,25 +74,62 @@ export function validateDocumento(value: string): string | undefined {
   return undefined
 }
 
-export function validateCompradorForm(
-  form: CreateCompradorPayload,
-): FieldErrors<'nome' | 'documento' | 'cidade' | 'estado'> {
-  const errors: FieldErrors<'nome' | 'documento' | 'cidade' | 'estado'> = {
-    nome: validateRequired(form.nome, 'Nome do comprador'),
-    documento: validateDocumento(form.documento),
-    estado: !form.estado
-      ? 'Selecione o estado.'
-      : !isEstadoValido(form.estado)
-        ? 'Estado inválido.'
-        : undefined,
-    cidade: !form.cidade
-      ? 'Selecione a cidade.'
-      : form.estado && !isCidadeValidaParaEstado(form.cidade, form.estado)
-        ? 'Cidade inválida para o estado selecionado.'
-        : undefined,
+export function validateUf(value: string): string | undefined {
+  const uf = value.trim().toUpperCase()
+
+  if (!uf) {
+    return 'Informe a UF do estado.'
+  }
+
+  if (uf.length !== 2) {
+    return 'A UF deve ter 2 letras (ex.: SP, RJ).'
+  }
+
+  if (!isEstadoValido(uf)) {
+    return 'UF inválida. Use a sigla de um estado brasileiro.'
+  }
+
+  return undefined
+}
+
+export function validateCompradorLocalidade(
+  localidade: CompradorLocalidadeInput,
+): FieldErrors<'estado' | 'cidade'> {
+  const { estado, cidade } = resolveCompradorLocalidade(localidade)
+
+  const errors: FieldErrors<'estado' | 'cidade'> = {}
+
+  if (!localidade.estadoSelecionado) {
+    errors.estado = 'Selecione o estado.'
+  } else if (isOutroEstado(localidade.estadoSelecionado)) {
+    errors.estado = validateUf(localidade.estadoCustom)
+  } else if (!isEstadoValido(localidade.estadoSelecionado)) {
+    errors.estado = 'Estado inválido.'
+  }
+
+  if (!localidade.cidadeSelecionada) {
+    errors.cidade = 'Selecione a cidade.'
+  } else if (isOutroCidade(localidade.cidadeSelecionada)) {
+    errors.cidade = validateRequired(localidade.cidadeCustom, 'Cidade')
+  } else if (estado && !isCidadeValidaParaEstado(cidade, estado)) {
+    errors.cidade = 'Cidade inválida para o estado selecionado.'
   }
 
   return errors
+}
+
+export function validateCompradorForm(
+  form: CreateCompradorPayload,
+  localidade?: CompradorLocalidadeInput,
+): FieldErrors<'nome' | 'documento' | 'cidade' | 'estado'> {
+  const localidadeErrors = localidade ? validateCompradorLocalidade(localidade) : {}
+
+  return {
+    nome: validateRequired(form.nome, 'Nome do comprador'),
+    documento: validateDocumento(form.documento),
+    estado: localidadeErrors.estado,
+    cidade: localidadeErrors.cidade,
+  }
 }
 
 export function validateMoeda(value: string): string | undefined {

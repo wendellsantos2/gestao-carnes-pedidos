@@ -3,9 +3,11 @@ import {
   hasFieldErrors,
   validateCarneForm,
   validateCompradorForm,
+  validateCompradorLocalidade,
   validatePositivePrice,
   validateRequired,
 } from '../src/utils/validation'
+import { OUTRO_CIDADE, OUTRO_ESTADO } from '../src/data/estadosCidades'
 
 describe('validateRequired', () => {
   it('exige nome do comprador', () => {
@@ -48,13 +50,43 @@ describe('validateCompradorForm', () => {
     expect(errors.documento).toBe('Documento é obrigatório.')
   })
 
-  it('aceita CPF válido com cidade e estado', () => {
-    const errors = validateCompradorForm({
-      nome: 'João Silva',
-      documento: '52998224725',
-      cidade: 'São Paulo',
-      estado: 'SP',
+  it('aceita CPF válido com cidade e estado da lista', () => {
+    const errors = validateCompradorForm(
+      {
+        nome: 'João Silva',
+        documento: '52998224725',
+        cidade: 'São Paulo',
+        estado: 'SP',
+      },
+      {
+        estadoSelecionado: 'SP',
+        estadoCustom: '',
+        cidadeSelecionada: 'São Paulo',
+        cidadeCustom: '',
+      },
+    )
+    expect(hasFieldErrors(errors)).toBe(false)
+  })
+})
+
+describe('validateCompradorLocalidade', () => {
+  it('aceita estado e cidade informados manualmente', () => {
+    const errors = validateCompradorLocalidade({
+      estadoSelecionado: OUTRO_ESTADO,
+      estadoCustom: 'SP',
+      cidadeSelecionada: OUTRO_CIDADE,
+      cidadeCustom: 'Guarulhos',
     })
     expect(hasFieldErrors(errors)).toBe(false)
+  })
+
+  it('exige UF válida ao escolher outro estado', () => {
+    const errors = validateCompradorLocalidade({
+      estadoSelecionado: OUTRO_ESTADO,
+      estadoCustom: 'XX',
+      cidadeSelecionada: OUTRO_CIDADE,
+      cidadeCustom: 'Cidade Teste',
+    })
+    expect(errors.estado).toBeTruthy()
   })
 })
