@@ -1,5 +1,6 @@
 import {
   Button,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -13,6 +14,7 @@ interface ConfirmDialogProps {
   message: string
   confirmLabel?: string
   loading?: boolean
+  loadingLabel?: string
   onConfirm: () => void
   onCancel: () => void
 }
@@ -23,6 +25,7 @@ export default function ConfirmDialog({
   message,
   confirmLabel = 'Confirmar',
   loading = false,
+  loadingLabel = 'Excluindo...',
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -36,8 +39,14 @@ export default function ConfirmDialog({
         <Button onClick={onCancel} disabled={loading}>
           Cancelar
         </Button>
-        <Button color="error" variant="contained" onClick={onConfirm} disabled={loading}>
-          {confirmLabel}
+        <Button
+          color="error"
+          variant="contained"
+          onClick={onConfirm}
+          disabled={loading}
+          startIcon={loading ? <CircularProgress size={16} color="inherit" /> : undefined}
+        >
+          {loading ? loadingLabel : confirmLabel}
         </Button>
       </DialogActions>
     </Dialog>

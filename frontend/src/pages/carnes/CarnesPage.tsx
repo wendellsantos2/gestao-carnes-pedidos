@@ -176,9 +176,9 @@ export default function CarnesPage() {
 
       <ConfirmDialog
         open={Boolean(deleteTarget)}
-        title="Excluir carne"
-        message={`Deseja excluir a carne "${deleteTarget?.nome}"?`}
-        confirmLabel="Excluir"
+        title="Confirmar exclusão"
+        message={`Deseja realmente excluir a carne "${deleteTarget?.nome}"? Esta ação não pode ser desfeita.`}
+        confirmLabel="Excluir carne"
         loading={saving}
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}

@@ -8,6 +8,7 @@ import {
   DialogContent,
   DialogTitle,
   FormControl,
+  FormHelperText,
   IconButton,
   InputLabel,
   MenuItem,
@@ -17,6 +18,8 @@ import {
   Typography,
 } from '@mui/material'
 import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material'
+import LoadingButton from '../../components/LoadingButton'
+import { useErrorHandler } from '../../components/ErrorHandlerProvider'
 import { listCarnes } from '../../services/carnesService'
 import { listCompradores } from '../../services/compradoresService'
 import { convertPrecoParaBrl, MOEDA_PRECOS_SISTEMA } from '../../services/cotacaoService'
@@ -32,6 +35,12 @@ import type {
 } from '../../types'
 import { PEDIDO_STATUS } from '../../types'
 import { formatCurrency } from '../../utils/format'
+import {
+  getFirstFieldError,
+  hasFieldErrors,
+  validatePedidoCreate,
+  type FieldErrors,
+} from '../../utils/validation'
 
 interface PedidoFormDialogProps {
   open: boolean
@@ -60,6 +69,7 @@ export default function PedidoFormDialog({
   const isEditing = Boolean(pedido)
   const canEditItems = !pedido || pedido.status === 'Pendente'
   const { cotacoes } = useCotacoes()
+  const { notifyError } = useErrorHandler()
 
   const [compradores, setCompradores] = useState<Comprador[]>([])
   const [carnes, setCarnes] = useState<Carne[]>([])
@@ -67,6 +77,7 @@ export default function PedidoFormDialog({
   const [compradorId, setCompradorId] = useState('')
   const [status, setStatus] = useState<string>('Pendente')
   const [items, setItems] = useState<ItemFormRow[]>([emptyItem()])
+  const [errors, setErrors] = useState<FieldErrors<'compradorId' | 'items'>>({})
 
   useEffect(() => {
     if (!open) return
@@ -110,6 +121,7 @@ export default function PedidoFormDialog({
     setCompradorId('')
     setStatus('Pendente')
     setItems([emptyItem()])
+    setErrors({})
   }, [open, pedido])
 
   const selectedCarneIds = useMemo(
@@ -160,6 +172,13 @@ export default function PedidoFormDialog({
 
       if (canEditItems) {
         const nextItems = buildItemsPayload()
+        const itemErrors = validatePedidoCreate(pedido.comprador.id, nextItems)
+        if (itemErrors.items) {
+          setErrors({ items: itemErrors.items })
+          notifyError(new Error(itemErrors.items))
+          return
+        }
+
         const currentItems = pedido.items.map((item) => ({
           carneId: item.carneId,
           quantidade: item.quantidade,
@@ -181,10 +200,29 @@ export default function PedidoFormDialog({
       return
     }
 
+    const nextItems = buildItemsPayload()
+    const formErrors = validatePedidoCreate(compradorId, nextItems)
+    setErrors(formErrors)
+
+    if (hasFieldErrors(formErrors)) {
+      notifyError(new Error(getFirstFieldError(formErrors) ?? 'Verifique os campos do pedido.'))
+      return
+    }
+
     onCreate({
       compradorId,
-      items: buildItemsPayload(),
+      items: nextItems,
     })
+  }
+
+  const handleCompradorChange = (value: string) => {
+    setCompradorId(value)
+    if (errors.compradorId) {
+      setErrors((current) => ({
+        ...current,
+        compradorId: validatePedidoCreate(value, buildItemsPayload()).compradorId,
+      }))
+    }
   }
 
   return (
@@ -203,12 +241,12 @@ export default function PedidoFormDialog({
                 disabled
               />
             ) : (
-              <FormControl fullWidth required>
+              <FormControl fullWidth required error={Boolean(errors.compradorId)}>
                 <InputLabel>Comprador</InputLabel>
                 <Select
                   label="Comprador"
                   value={compradorId}
-                  onChange={(e) => setCompradorId(e.target.value)}
+                  onChange={(e) => handleCompradorChange(e.target.value)}
                 >
                   {compradores.map((comprador) => (
                     <MenuItem key={comprador.id} value={comprador.id}>
@@ -216,6 +254,7 @@ export default function PedidoFormDialog({
                     </MenuItem>
                   ))}
                 </Select>
+                {errors.compradorId && <FormHelperText>{errors.compradorId}</FormHelperText>}
               </FormControl>
             )}
 
@@ -240,10 +279,16 @@ export default function PedidoFormDialog({
               <Box>
                 <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
                   <Typography variant="subtitle1">Itens</Typography>
-                  <Button size="small" startIcon={<AddIcon />} onClick={addItem}>
+                  <Button type="button" size="small" startIcon={<AddIcon />} onClick={addItem}>
                     Adicionar item
                   </Button>
                 </Stack>
+
+                {errors.items && (
+                  <Alert severity="error" sx={{ mb: 2 }}>
+                    {errors.items}
+                  </Alert>
+                )}
 
                 <Stack spacing={2}>
                   {items.map((item, index) => (
@@ -312,12 +357,12 @@ export default function PedidoFormDialog({
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={onClose} disabled={loading}>
+          <LoadingButton onClick={onClose} disabled={loading}>
             Cancelar
-          </Button>
-          <Button type="submit" variant="contained" disabled={loading}>
+          </LoadingButton>
+          <LoadingButton type="submit" variant="contained" loading={loading}>
             Salvar
-          </Button>
+          </LoadingButton>
         </DialogActions>
       </form>
     </Dialog>

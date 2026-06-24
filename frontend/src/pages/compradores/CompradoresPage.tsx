@@ -173,9 +173,9 @@ export default function CompradoresPage() {
 
       <ConfirmDialog
         open={Boolean(deleteTarget)}
-        title="Excluir comprador"
-        message={`Deseja excluir o comprador "${deleteTarget?.nome}"?`}
-        confirmLabel="Excluir"
+        title="Confirmar exclusão"
+        message={`Deseja realmente excluir o comprador "${deleteTarget?.nome}"? Esta ação não pode ser desfeita.`}
+        confirmLabel="Excluir comprador"
         loading={saving}
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}

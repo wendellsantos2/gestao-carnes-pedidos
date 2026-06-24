@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Alert,
   Box,
@@ -33,11 +33,14 @@ import {
   listPedidos,
   updatePedido,
 } from '../../services/pedidosService'
+import { listCompradores } from '../../services/compradoresService'
 import { MOEDA_PRECOS_SISTEMA, type CotacoesUsdEur } from '../../services/cotacaoService'
-import type { CreatePedidoPayload, Pedido, UpdatePedidoPayload } from '../../types'
+import type { Comprador, CreatePedidoPayload, Pedido, UpdatePedidoPayload } from '../../types'
 import { formatCurrency, formatDate } from '../../utils/format'
 import { resolveErrorMessage } from '../../utils/errorMessages'
+import { filterPedidos, emptyPedidosFilters, type PedidosFilters } from '../../utils/pedidosFilter'
 import PedidoFormDialog from './PedidoFormDialog'
+import PedidosFilterBar from './PedidosFilterBar'
 
 interface PedidoRowProps {
   pedido: Pedido
@@ -114,6 +117,8 @@ export default function PedidosPage() {
   const { notifyError, notifySuccess } = useErrorHandler()
   const { cotacoes, loading: loadingCotacoes, error: cotacaoError } = useCotacoes()
   const [pedidos, setPedidos] = useState<Pedido[]>([])
+  const [compradores, setCompradores] = useState<Comprador[]>([])
+  const [filters, setFilters] = useState<PedidosFilters>(emptyPedidosFilters)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -126,14 +131,23 @@ export default function PedidosPage() {
     setError('')
 
     try {
-      const data = await listPedidos()
-      setPedidos(data)
+      const [pedidosData, compradoresData] = await Promise.all([
+        listPedidos(),
+        listCompradores(),
+      ])
+      setPedidos(pedidosData)
+      setCompradores(compradoresData)
     } catch (err) {
       setError(resolveErrorMessage(err))
     } finally {
       setLoading(false)
     }
   }, [])
+
+  const filteredPedidos = useMemo(
+    () => filterPedidos(pedidos, filters),
+    [pedidos, filters],
+  )
 
   useEffect(() => {
     loadPedidos()
@@ -221,6 +235,17 @@ export default function PedidosPage() {
         </Alert>
       )}
 
+      {!loading && !loadingCotacoes && (
+        <PedidosFilterBar
+          compradores={compradores}
+          filters={filters}
+          resultCount={filteredPedidos.length}
+          totalCount={pedidos.length}
+          onChange={setFilters}
+          onClear={() => setFilters(emptyPedidosFilters)}
+        />
+      )}
+
       {loading || loadingCotacoes ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
           <CircularProgress />
@@ -240,15 +265,17 @@ export default function PedidosPage() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {pedidos.length === 0 ? (
+              {filteredPedidos.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} align="center">
-                    Nenhum pedido cadastrado.
+                    {pedidos.length === 0
+                      ? 'Nenhum pedido cadastrado.'
+                      : 'Nenhum pedido encontrado com os filtros selecionados.'}
                   </TableCell>
                 </TableRow>
               ) : (
                 cotacoes &&
-                pedidos.map((pedido) => (
+                filteredPedidos.map((pedido) => (
                   <PedidoRow
                     key={pedido.id}
                     pedido={pedido}
@@ -274,9 +301,13 @@ export default function PedidosPage() {
 
       <ConfirmDialog
         open={Boolean(deleteTarget)}
-        title="Excluir pedido"
-        message="Deseja excluir este pedido?"
-        confirmLabel="Excluir"
+        title="Confirmar exclusão"
+        message={
+          deleteTarget
+            ? `Deseja realmente excluir o pedido de "${deleteTarget.comprador.nome}" em ${formatDate(deleteTarget.dataPedido)}? Esta ação não pode ser desfeita.`
+            : ''
+        }
+        confirmLabel="Excluir pedido"
         loading={saving}
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}
