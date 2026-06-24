@@ -7,9 +7,17 @@ using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Banco de dados
+var useSqlite = builder.Configuration.GetValue<bool>("Database:UseSqlite");
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' não configurada.");
+
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+{
+    if (useSqlite)
+        options.UseSqlite(connectionString);
+    else
+        options.UseSqlServer(connectionString);
+});
 
 // Repositórios
 builder.Services.AddScoped<ICarneRepository, CarneRepository>();
@@ -73,10 +81,34 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await DbSeeder.SeedAsync(context);
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+
+    var maxAttempts = useSqlite ? 1 : 30;
+
+    for (var attempt = 1; attempt <= maxAttempts; attempt++)
+    {
+        try
+        {
+            if (useSqlite)
+                await context.Database.EnsureCreatedAsync();
+            else
+                await context.Database.MigrateAsync();
+
+            await DbSeeder.SeedAsync(context);
+            break;
+        }
+        catch (Exception ex) when (attempt < maxAttempts)
+        {
+            logger.LogWarning(ex, "Banco indisponível. Nova tentativa em 2s ({Attempt}/{MaxAttempts})...", attempt, maxAttempts);
+            await Task.Delay(TimeSpan.FromSeconds(2));
+        }
+    }
 }
 
-if (app.Environment.IsDevelopment())
+var enableSwagger = app.Environment.IsDevelopment()
+    || builder.Configuration.GetValue<bool>("Swagger:Enabled");
+
+if (enableSwagger)
 {
     app.UseSwagger();
     app.UseSwaggerUI(options =>
@@ -84,6 +116,8 @@ if (app.Environment.IsDevelopment())
         options.SwaggerEndpoint("/swagger/v1/swagger.json", "Gestão Carnes Pedidos API v1");
         options.RoutePrefix = "swagger";
     });
+
+    app.MapGet("/", () => Results.Redirect("/swagger/index.html")).ExcludeFromDescription();
 }
 else
 {

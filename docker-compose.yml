@@ -1,0 +1,30 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: gestao-carnes-api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      Swagger__Enabled: "true"
+      Database__UseSqlite: "true"
+      ConnectionStrings__DefaultConnection: Data Source=/data/SistemaPedidosCarnes.db
+    ports:
+      - "5005:8080"
+    volumes:
+      - sqlite-data:/data
+    restart: on-failure
+
+  web:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: gestao-carnes-web
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+    restart: on-failure
+
+volumes:
+  sqlite-data:

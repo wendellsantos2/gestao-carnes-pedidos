@@ -11,6 +11,7 @@ gestao-carnes-pedidos/
 │   ├── Infra/               # EF Core, migrations e repositórios
 │   └── Database/            # Script SQL opcional (criação manual do banco)
 ├── frontend/                # Interface React (Vite, TypeScript, MUI)
+├── docker-compose.yml       # Orquestração Docker (api + web, SQLite)
 └── README.md
 ```
 
@@ -21,12 +22,54 @@ Instale antes de começar:
 
 | Ferramenta                                        | Versão mínima | Verificar instalação                           |
 | ------------------------------------------------- | ------------- | ---------------------------------------------- |
+| [Docker Desktop](https://www.docker.com/products/docker-desktop/) | —   | `docker --version` e `docker compose version`  |
 | [.NET SDK](https://dotnet.microsoft.com/download) | 8.0           | `dotnet --version`                             |
 | [Node.js](https://nodejs.org/)                    | 18+           | `node --version`                               |
 | SQL Server ou **LocalDB**                         | —             | Incluído no Visual Studio / SQL Server Express |
 
 
 > **Windows:** o projeto usa **LocalDB** por padrão (`(localdb)\MSSQLLocalDB`). Não é necessário instalar SQL Server completo para desenvolvimento local.
+
+## Rodar com Docker (recomendado)
+
+A forma mais simples de subir o sistema (API + frontend). No Docker usamos **SQLite** em volume — sem container de SQL Server, sobe em segundos.
+
+### Pré-requisito
+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) instalado e em execução
+
+### Comandos
+
+Na raiz do projeto:
+
+```bash
+docker compose up --build
+```
+
+Na primeira execução o Docker compila backend e frontend e cria o banco SQLite com dados de exemplo.
+
+> **Desenvolvimento local (sem Docker)** continua usando SQL Server / LocalDB com migrations EF.
+
+### Acessos
+
+
+| Recurso        | URL                                                            |
+| -------------- | -------------------------------------------------------------- |
+| Interface web  | [http://localhost:8080](http://localhost:8080)                 |
+| API / Swagger  | [http://localhost:5005](http://localhost:5005) (abre o Swagger automaticamente) |
+
+
+### Parar os containers
+
+```bash
+docker compose down
+```
+
+Para remover também o volume do banco (dados apagados):
+
+```bash
+docker compose down -v
+```
 
 ## Como rodar localmente
 
@@ -183,6 +226,31 @@ Opcional. Copie `frontend/.env.example` para `frontend/.env` se necessário:
 
 
 ## Solução de problemas
+
+### Docker: build do frontend falha (EIO / npm)
+
+- Erro `TAR_ENTRY_ERROR EIO` costuma ser disco cheio ou problema de I/O do Docker Desktop no Windows.
+- Tente: **Docker Desktop → Settings → Resources** (aumente disco) e `docker system prune -a`
+- O Dockerfile do frontend usa `node:20-bookworm-slim` (mais estável que Alpine no Windows).
+
+### Docker: `dotnet.runtimeconfig.json` vazio / exit code 147
+
+Cache corrompido da imagem .NET no Docker Desktop. Rode na raiz do projeto:
+
+```powershell
+docker builder prune -af
+docker pull mcr.microsoft.com/dotnet/sdk:8.0.404-bookworm-slim
+docker pull mcr.microsoft.com/dotnet/aspnet:8.0.16-bookworm-slim
+docker compose build --no-cache
+docker compose up
+```
+
+Se persistir, reinicie o Docker Desktop ou aumente o disco virtual em **Settings → Resources**.
+
+### Docker: API sem dados
+
+- Confirme que os dois containers estão rodando: `docker compose ps`
+- A interface em **8080** usa proxy interno para a API; acesse [http://localhost:8080](http://localhost:8080), não o build estático sem proxy.
 
 ### `dotnet ef` não encontrado
 

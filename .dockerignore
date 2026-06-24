@@ -1,0 +1,14 @@
+**/.git
+**/.vs
+**/.idea
+**/node_modules
+**/dist
+**/bin
+**/obj
+**/logs
+**/*.user
+**/*.suo
+**/.env
+**/.env.local
+**/npm-debug.log*
+**/Application.Tests
